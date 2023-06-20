@@ -12,7 +12,6 @@
 import os
 import sys
 import time
-
 import pandas as pd
 
 
@@ -71,15 +70,14 @@ def list_to_dict(title_list, data_list):
     """
     # 保存所有性能数据的字典
     data_dict = {}
-
     # 如果第1个list的总数大于第2个list，说明有未完成的rd，需要把第1个list最后的结果删除
     if len(title_list) - len(data_list) == 1:
         title_list.pop()
-        title_list = title_list[0]
-        data_list = data_list
-    elif len(title_list) == len(data_list):
         title_list = title_list
         data_list = data_list
+
+    # print(title_list)
+    # print(data_list)
 
     # 处理title list数据
     start_time_list = [item[0] for item in title_list]
@@ -118,8 +116,7 @@ def list_to_dict(title_list, data_list):
     data_dict.update({'xfersize': xfersize_list})
     data_dict.update({'threads': threads_list})
 
-    print(title_list)
-    print(data_list)
+
 
     # 更新data字典数据
     data_dict.update({'iops': iops_list})
@@ -138,17 +135,17 @@ def list_to_dict(title_list, data_list):
     return data_dict
 
 
-def write_excel(data_dict, output_path, result_name='output.xlsx'):
+def write_excel(data_dict, output_path, result_name='output'):
     os.path.abspath(output_path.replace("\\", "/"))
     df = pd.DataFrame(data_dict)
     # 如果文件已存在，会生成新的文件
-    if os.path.exists(output_path + result_name):
+    if os.path.exists(os.path.dirname(output_path) + "/" + result_name + ".xlsx"):
         time_stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime())
-        new_path = os.path.join(os.path.dirname(output_path) + "/" + "output" + "_" + time_stamp + ".xlsx")
+        new_path = os.path.join(os.path.dirname(output_path) + "/" + result_name + "_" + time_stamp + ".xlsx")
         print(new_path)
         df.to_excel(new_path, index=False)
     else:
-        df.to_excel(output_path + result_name, index=False)
+        df.to_excel(os.path.dirname(output_path) + "/" + result_name + ".xlsx", index=False)
 
 
 if __name__ == '__main__':
@@ -162,7 +159,6 @@ if __name__ == '__main__':
     if os.path.isfile(input_arg[1]):
         absolute_path = os.path.abspath(input_arg[1])
         absolute_path = str(absolute_path).replace("\\", "/")
-
         lists = parser_totals(absolute_path)
         perf_dict = list_to_dict(lists[0], lists[1])
         write_excel(perf_dict, output_path=absolute_path)

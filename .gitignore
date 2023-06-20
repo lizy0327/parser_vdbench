@@ -2,5 +2,8 @@
 *.log
 *.temp
 *\.idea
+*.spec
 Lib/
 Scripts
+build/
+dist/
