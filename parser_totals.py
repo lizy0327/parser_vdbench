@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # -*-coding:utf-8 -*-
 """
-# File       : xml_parser.py
+# File       : parser_vdbench.py
 # Time       : 2023-06-20 14:44
 # Author     : lizy
 # Email      : lizy0327@gmail.com
@@ -116,8 +116,6 @@ def list_to_dict(title_list, data_list):
     data_dict.update({'xfersize': xfersize_list})
     data_dict.update({'threads': threads_list})
 
-
-
     # 更新data字典数据
     data_dict.update({'iops': iops_list})
     data_dict.update({'resp': resp_list})
@@ -135,32 +133,69 @@ def list_to_dict(title_list, data_list):
     return data_dict
 
 
-def write_excel(data_dict, output_path, result_name='output'):
+def write_excel(data_dict, output_path, result_name):
     os.path.abspath(output_path.replace("\\", "/"))
     df = pd.DataFrame(data_dict)
+
     # 如果文件已存在，会生成新的文件
     if os.path.exists(os.path.dirname(output_path) + "/" + result_name + ".xlsx"):
+        # 生成随机数字戳
         time_stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime())
+        # 拼接新的路径
         new_path = os.path.join(os.path.dirname(output_path) + "/" + result_name + "_" + time_stamp + ".xlsx")
-        print(new_path)
+        print(f"The file path is : {new_path}")
         df.to_excel(new_path, index=False)
     else:
-        df.to_excel(os.path.dirname(output_path) + "/" + result_name + ".xlsx", index=False)
+        file_path = os.path.dirname(output_path) + "/" + result_name + ".xlsx"
+        df.to_excel(file_path, index=False)
+        print(f"The file path is : {file_path}")
+
+
+def is_valid_filename(filename):
+    # 检查是否包含斜杠
+    if '/' in filename:
+        return False
+
+    if '\\' in filename:
+        return False
+
+    # 检查是否包含空字符或空白字符
+    if any(char.isspace() for char in filename):
+        return False
+
+    # 检查是否包含特殊字符
+    special_characters = set('/\n\t\r\v\f')
+    if any(char in special_characters for char in filename):
+        return False
+
+    # 文件名合法
+    return True
 
 
 if __name__ == '__main__':
 
-    # html_name = 'totals.html'
-    # html_path = 'D:\\PythonProject\\'
-    # os.path.abspath(html_path.replace("\\", "/"))
-
     input_arg = sys.argv
 
-    if os.path.isfile(input_arg[1]):
-        absolute_path = os.path.abspath(input_arg[1])
-        absolute_path = str(absolute_path).replace("\\", "/")
-        lists = parser_totals(absolute_path)
-        perf_dict = list_to_dict(lists[0], lists[1])
-        write_excel(perf_dict, output_path=absolute_path)
+    if len(input_arg) == 2:
+        if os.path.isfile(input_arg[1]):
+            absolute_path = os.path.abspath(input_arg[1])
+            absolute_path = str(absolute_path).replace("\\", "/")
+            lists = parser_totals(absolute_path)
+            perf_dict = list_to_dict(lists[0], lists[1])
+            write_excel(perf_dict, output_path=absolute_path, result_name=absolute_path.split("/")[-1].split(".")[0])
+        else:
+            print("input is a file path or no such file.")
+    elif len(input_arg) == 3:
+        if os.path.isfile(input_arg[1]):
+            if is_valid_filename(input_arg[2]):
+                absolute_path = os.path.abspath(input_arg[1])
+                absolute_path = str(absolute_path).replace("\\", "/")
+                lists = parser_totals(absolute_path)
+                perf_dict = list_to_dict(lists[0], lists[1])
+                write_excel(perf_dict, output_path=absolute_path, result_name=input_arg[2])
+            else:
+                print("the filename is invalid.")
+        else:
+            print("input is a file path or no such file.")
     else:
-        print("input is a file path not file,pls input filename.")
+        print("params is invalid")
