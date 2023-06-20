@@ -10,6 +10,7 @@
 # Description: Welcom!!!
 """
 import os
+import sys
 import time
 
 import pandas as pd
@@ -143,7 +144,7 @@ def write_excel(data_dict, output_path, result_name='output.xlsx'):
     # 如果文件已存在，会生成新的文件
     if os.path.exists(output_path + result_name):
         time_stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime())
-        new_path = os.path.join(output_path + "output" + "_" + time_stamp + ".xlsx")
+        new_path = os.path.join(os.path.dirname(output_path) + "/" + "output" + "_" + time_stamp + ".xlsx")
         print(new_path)
         df.to_excel(new_path, index=False)
     else:
@@ -152,12 +153,18 @@ def write_excel(data_dict, output_path, result_name='output.xlsx'):
 
 if __name__ == '__main__':
 
-    html_name = 'totals.html'
-    html_path = 'D:\\PythonProject\\'
-    os.path.abspath(html_path.replace("\\", "/"))
+    # html_name = 'totals.html'
+    # html_path = 'D:\\PythonProject\\'
+    # os.path.abspath(html_path.replace("\\", "/"))
 
-    lists = parser_totals(html_path + html_name)
+    input_arg = sys.argv
 
-    perf_dict = list_to_dict(lists[0], lists[1])
+    if os.path.isfile(input_arg[1]):
+        absolute_path = os.path.abspath(input_arg[1])
+        absolute_path = str(absolute_path).replace("\\", "/")
 
-    write_excel(perf_dict, output_path=html_path)
+        lists = parser_totals(absolute_path)
+        perf_dict = list_to_dict(lists[0], lists[1])
+        write_excel(perf_dict, output_path=absolute_path)
+    else:
+        print("input is a file path not file,pls input filename.")
