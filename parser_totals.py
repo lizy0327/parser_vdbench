@@ -11,6 +11,7 @@
 """
 import os
 import sys
+import argparse
 import time
 import pandas as pd
 
@@ -129,7 +130,9 @@ def list_to_dict(title_list, data_list):
     data_dict.update({'total mbps': total_mbps_list})
     data_dict.update({'xfer size': xfer_size_list})
 
-    print(data_dict)
+    # 如果没有--debug标识，则不打印字典信息
+    if intput_args()[-1]:
+        print(data_dict)
     return data_dict
 
 
@@ -143,8 +146,8 @@ def write_excel(data_dict, output_path, result_name):
         time_stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime())
         # 拼接新的路径
         new_path = os.path.join(os.path.dirname(output_path) + "/" + result_name + "_" + time_stamp + ".xlsx")
-        print(f"The file path is : {new_path}")
         df.to_excel(new_path, index=False)
+        print(f"The file path is : {new_path}")
     else:
         file_path = os.path.dirname(output_path) + "/" + result_name + ".xlsx"
         df.to_excel(file_path, index=False)
@@ -152,6 +155,11 @@ def write_excel(data_dict, output_path, result_name):
 
 
 def is_valid_filename(filename):
+    """
+    检查文件名是否合法，暂未使用。
+    :param filename:
+    :return:
+    """
     # 检查是否包含斜杠
     if '/' in filename:
         return False
@@ -168,34 +176,62 @@ def is_valid_filename(filename):
     if any(char in special_characters for char in filename):
         return False
 
+    if sys.platform == 'win32' and ':' not in filename:
+        return False
+    elif sys.platform == 'linux' and ':' in filename:
+        return False
+
     # 文件名合法
     return True
 
 
-if __name__ == '__main__':
+def convert_path(path):
+    # 将路径分隔符替换为Linux风格的斜杠，并在末尾加上斜杠，保持格式一致
+    absolute_path = os.path.abspath(path).replace("\\", "/")
 
-    input_arg = sys.argv
+    if not absolute_path.endswith("/"):
+        absolute_path += "/"
+    return absolute_path
 
-    if len(input_arg) == 2:
-        if os.path.isfile(input_arg[1]):
-            absolute_path = os.path.abspath(input_arg[1])
-            absolute_path = str(absolute_path).replace("\\", "/")
-            lists = parser_totals(absolute_path)
-            perf_dict = list_to_dict(lists[0], lists[1])
-            write_excel(perf_dict, output_path=absolute_path, result_name=absolute_path.split("/")[-1].split(".")[0])
-        else:
-            print("input is a file path or no such file.")
-    elif len(input_arg) == 3:
-        if os.path.isfile(input_arg[1]):
-            if is_valid_filename(input_arg[2]):
-                absolute_path = os.path.abspath(input_arg[1])
-                absolute_path = str(absolute_path).replace("\\", "/")
-                lists = parser_totals(absolute_path)
-                perf_dict = list_to_dict(lists[0], lists[1])
-                write_excel(perf_dict, output_path=absolute_path, result_name=input_arg[2])
-            else:
-                print("the filename is invalid.")
-        else:
-            print("input is a file path or no such file.")
+
+def intput_args():
+    """
+    用来处理输入的参数
+    :return:
+    """
+
+    # 创建 ArgumentParser 对象，使用formatter_class参数帮助文本的格式化方式为原始文本格式。这样可以保留文本中的换行符。
+    arg_parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+    # 添加版本信息
+    arg_parser.add_argument('-v', '--version', action='version', version='1.3.0', help='Show version')
+    # 添加 debug 参数，如果添加了debug参数则为True，否则为False
+    arg_parser.add_argument('--debug', action='store_true',
+                            help='Enable debug mode. \nExample:parser_totals <totals.html> --debug')
+    arg_parser.add_argument('--example', help='parser_totals <totals.html>')
+    # 解析命令行参数，known_args包含除--debug以外的所有参数
+    args, known_args = arg_parser.parse_known_args()
+
+    # 如果没有任何参数，打印帮助
+    if len(sys.argv) == 1:
+        arg_parser.print_help()
+        sys.exit()
+    # 判断是否启用了 debug 模式
+    elif args.debug:
+        return known_args, True
     else:
-        print("params is invalid")
+        return known_args, False
+
+
+if __name__ == '__main__':
+    # 只允许传入1个参数，默认会在文件同目录下生成xlsx文件
+    if len(intput_args()[0]) == 1:
+        if os.path.isfile(intput_args()[0][0]):
+            # 获取参数列表里的第1个参数
+            input_path = os.path.abspath(intput_args()[0][0]).replace("\\", "/")
+            lists = parser_totals(input_path)
+            perf_dict = list_to_dict(lists[0], lists[1])
+            write_excel(perf_dict, output_path=input_path, result_name=input_path.split("/")[-1].split(".")[0])
+        else:
+            print("there is no such as file.")
+    else:
+        print("param is invalid, only one param.")
