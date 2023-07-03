@@ -154,46 +154,6 @@ def write_excel(data_dict, output_path, result_name):
         print(f"The file path is : {file_path}")
 
 
-def is_valid_filename(filename):
-    """
-    检查文件名是否合法，暂未使用。
-    :param filename:
-    :return:
-    """
-    # 检查是否包含斜杠
-    if '/' in filename:
-        return False
-
-    if '\\' in filename:
-        return False
-
-    # 检查是否包含空字符或空白字符
-    if any(char.isspace() for char in filename):
-        return False
-
-    # 检查是否包含特殊字符
-    special_characters = set('/\n\t\r\v\f')
-    if any(char in special_characters for char in filename):
-        return False
-
-    if sys.platform == 'win32' and ':' not in filename:
-        return False
-    elif sys.platform == 'linux' and ':' in filename:
-        return False
-
-    # 文件名合法
-    return True
-
-
-def convert_path(path):
-    # 将路径分隔符替换为Linux风格的斜杠，并在末尾加上斜杠，保持格式一致
-    absolute_path = os.path.abspath(path).replace("\\", "/")
-
-    if not absolute_path.endswith("/"):
-        absolute_path += "/"
-    return absolute_path
-
-
 def intput_args():
     """
     用来处理输入的参数
