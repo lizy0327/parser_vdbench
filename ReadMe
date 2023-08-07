@@ -1,2 +1,5 @@
 # build executable file the output is in dist dir
 pyinstaller --onefile --hidden-import=pandas,openpyxl parser_totals.py
+
+# 1.5版本解决如何过滤埋数据RD的问题，当然这个也和vdbench脚本编写逻辑有关
+# 后面版本优化，最理想状态是可以自定义要过滤的titile和data关键字最好
