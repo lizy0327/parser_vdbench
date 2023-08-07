@@ -16,6 +16,34 @@ import time
 import pandas as pd
 
 
+def is_time_format(line):
+    # 检查字符串长度是否满足 HH:MM:SS.SSS 格式的长度，即 12 个字符
+    if len(line) < 12:
+        return False
+
+    # 检查前两个字符是否是数字且在 00-23 范围内
+    if not line[:2].isdigit() or int(line[:2]) > 23:
+        return False
+
+    # 检查第三个字符是否是冒号
+    if line[2] != ":":
+        return False
+
+    # 检查第四个和第五个字符是否是数字且在 00-59 范围内
+    if not line[3:5].isdigit() or int(line[3:5]) > 59:
+        return False
+
+    # 检查第六个字符是否是冒号
+    if line[5] != ":":
+        return False
+
+    # 检查第七个到第十二个字符是否是数字且在 00.000-59.999 范围内
+    if not line[6:12].replace(".", "").isdigit() or float(line[6:12]) > 59.999:
+        return False
+
+    return True
+
+
 def parser_totals(html_path):
     """
     此函数用来解析vdbench生成的totals.html文件，并返回2个list。
@@ -30,10 +58,14 @@ def parser_totals(html_path):
             # 包含最终性能数据的列表
             data_lists = []
             for line in file.readlines():
-                # 过滤埋数据的RD
-                if "RD=format" not in line and "avg_2-1" not in line:
-                    if "name" in line or "avg_31" in line:
-                        # 处理标题内容，处理包含<a>和<b>标签之间的内容
+                # 过滤重新埋数据的RD
+                if "RD=format" not in line and "avg_2-1" not in line and "fill" not in line:
+                    '''
+                    avg_2-1,前面的2代表warmup+1时长，最后的1代表运行了总时长（warmup+elapsed）。比如avg_13-25，代表warmup是12秒，
+                    elapsed是13秒。
+                    '''
+                    # 处理标题内容，处理包含<a>和<b>标签之间的内容
+                    if "name" in line:
                         if "<a" in line:
                             start_tag = '<b>'
                             end_tag = '</b>'
@@ -51,10 +83,12 @@ def parser_totals(html_path):
                                 title_lists.append(title_list)
                             else:
                                 print("No <b> tag found.")
-                        # 处理性能数据
                         else:
-                            data_list = [item for item in line.split() if "avg" not in item]
-                            data_lists.append(data_list)
+                            print("No <a> tag found.")
+                    # 处理性能数据
+                    if is_time_format(line):
+                        data_list = [item for item in line.split() if "avg" not in item]
+                        data_lists.append(data_list)
             return title_lists, data_lists
     except SyntaxError:
         print(f"the file: {html_path} is not html format")
@@ -74,6 +108,9 @@ def list_to_dict(title_list, data_list):
     # 如果第1个list的总数大于第2个list，说明有未完成的rd，需要把第1个list最后的结果删除
     if len(title_list) - len(data_list) == 1:
         title_list.pop()
+        title_list = title_list
+        data_list = data_list
+    else:
         title_list = title_list
         data_list = data_list
 
@@ -163,7 +200,7 @@ def intput_args():
     # 创建 ArgumentParser 对象，使用formatter_class参数帮助文本的格式化方式为原始文本格式。这样可以保留文本中的换行符。
     arg_parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     # 添加版本信息
-    arg_parser.add_argument('-v', '--version', action='version', version='1.3.0', help='Show version')
+    arg_parser.add_argument('-v', '--version', action='version', version='1.4', help='Show version')
     # 添加 debug 参数，如果添加了debug参数则为True，否则为False
     arg_parser.add_argument('--debug', action='store_true',
                             help='Enable debug mode. \nExample:parser_totals <totals.html> --debug')

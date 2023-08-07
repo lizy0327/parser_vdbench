@@ -1,0 +1,2 @@
+# build executable file the output is in dist dir
+pyinstaller --onefile --hidden-import=pandas,openpyxl parser_totals.py
