@@ -225,9 +225,20 @@ if __name__ == '__main__':
         if os.path.isfile(intput_args()[0][0]):
             # 获取参数列表里的第1个参数
             input_path = os.path.abspath(intput_args()[0][0]).replace("\\", "/")
-            lists = parser_totals(input_path)
-            perf_dict = list_to_dict(lists[0], lists[1])
-            write_excel(perf_dict, output_path=input_path, result_name=input_path.split("/")[-1].split(".")[0])
+            try:
+                # 读取HTML文件
+                with open(input_path, 'r') as file:
+                    # 判断是否是文件类型性能测试
+                    if "<A" and "format" in file.readlines()[4]:
+                        lists = parser_totals(input_path)
+                        perf_dict = list_to_dict(lists[0], lists[1])
+                        write_excel(perf_dict, output_path=input_path,
+                                    result_name=input_path.split("/")[-1].split(".")[0])
+                    else:
+                        # 块设备类型性能测试
+                        print("block io result.")
+            except Exception as e:
+                print(e)
         else:
             print("there is no such as file.")
     else:
