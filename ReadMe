@@ -3,3 +3,7 @@ pyinstaller --onefile --hidden-import=pandas,openpyxl parser_totals.py
 
 # 1.5版本解决如何过滤埋数据RD的问题，当然这个也和vdbench脚本编写逻辑有关
 # 后面版本优化，最理想状态是可以自定义要过滤的titile和data关键字最好
+
+1.5.1 2023/08/27
+添加了判断区分block和file不同类型性能结果的判断逻辑，但是block性能数据处理代码还没写。
+

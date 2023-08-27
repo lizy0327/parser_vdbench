@@ -200,7 +200,7 @@ def intput_args():
     # 创建 ArgumentParser 对象，使用formatter_class参数帮助文本的格式化方式为原始文本格式。这样可以保留文本中的换行符。
     arg_parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     # 添加版本信息
-    arg_parser.add_argument('-v', '--version', action='version', version='1.4', help='Show version')
+    arg_parser.add_argument('-v', '--version', action='version', version='1.5.1', help='Show version')
     # 添加 debug 参数，如果添加了debug参数则为True，否则为False
     arg_parser.add_argument('--debug', action='store_true',
                             help='Enable debug mode. \nExample:parser_totals <totals.html> --debug')
