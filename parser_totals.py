@@ -12,8 +12,13 @@
 import os
 import sys
 import argparse
+import re
 import time
+import datetime
 import pandas as pd
+from Cryptodome.Cipher import AES
+from binascii import a2b_hex
+import subprocess
 
 
 def is_time_format(line):
@@ -193,14 +198,14 @@ def write_excel(data_dict, output_path, result_name):
 
 def intput_args():
     """
-    用来处理输入的参数
+    处理输入的参数
     :return:
     """
 
     # 创建 ArgumentParser 对象，使用formatter_class参数帮助文本的格式化方式为原始文本格式。这样可以保留文本中的换行符。
     arg_parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     # 添加版本信息
-    arg_parser.add_argument('-v', '--version', action='version', version='1.5.1', help='Show version')
+    arg_parser.add_argument('-v', '--version', action='version', version='1.6', help='Show version')
     # 添加 debug 参数，如果添加了debug参数则为True，否则为False
     arg_parser.add_argument('--debug', action='store_true',
                             help='Enable debug mode. \nExample:parser_totals <totals.html> --debug')
@@ -219,7 +224,75 @@ def intput_args():
         return known_args, False
 
 
+# License check
+def license_check():
+    license_dic = parse_license_file()
+    try:
+        sign = decrypt(license_dic['Sign'])
+        sign_list = sign.split('#')
+        uuid = sign_list[0].strip()
+        date = sign_list[1].strip()
+    except Exception as e:
+        print("The license's sign is invalid!!!")
+        sys.exit(1)
+
+    # Check license file is modified or not.
+    if (uuid != license_dic['UUID']) or (date != license_dic['Date']):
+        print('*Error*: License file is modified!')
+        sys.exit(1)
+
+    # Check UUID and effective date invalid or not.
+    if len(sign_list) == 2:
+        uuid = get_sys_uuid()
+        current_date = datetime.datetime.now().strftime('%Y%m%d')
+        # Must run this script under specified UUID.
+        if sign_list[0] != uuid:
+            # print('*Error*: Invalid host!')
+            # sys.exit(1)
+            pass
+        # Current time must be before effective date.
+        if sign_list[1] < current_date:
+            print('*Error*: License is expired!')
+            sys.exit(1)
+    else:
+        print('*Error*: Wrong Sign setting on license file.')
+        sys.exit(1)
+
+
+def parse_license_file():
+    try:
+        license_dic = {}
+        license_file = './License.dat'
+        with open(license_file, 'r') as LF:
+            for line in LF.readlines():
+                if re.match('^\s*(\S+)\s*:\s*(\S+)\s*$', line):
+                    my_match = re.match('^\s*(\S+)\s*:\s*(\S+)\s*$', line)
+                    license_dic[my_match.group(1)] = my_match.group(2)
+        return license_dic
+    except FileNotFoundError:
+        print("License file is not found")
+        sys.exit()
+
+
+def decrypt(content):
+    aes = AES.new(b'0CoJUm3Qyw3W3jud', AES.MODE_CBC, b'0123456789123456')
+    decrypted_content = aes.decrypt(a2b_hex(content.encode('utf-8')))
+    return decrypted_content.decode('utf-8')
+
+
+def get_sys_uuid():
+    sp = subprocess.Popen('/sbin/dmidecode -s system-uuid', shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE)
+    (stdout, stderr) = sp.communicate()
+    stdout_list = str(stdout, 'utf-8').split('\n')
+    return stdout_list[0]
+
+
 if __name__ == '__main__':
+    # 获取OS UUID
+    get_sys_uuid()
+    # 检查license授权
+    license_check()
     # 只允许传入1个参数，默认会在文件同目录下生成xlsx文件
     if len(intput_args()[0]) == 1:
         if os.path.isfile(intput_args()[0][0]):

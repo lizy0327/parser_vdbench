@@ -1,5 +1,14 @@
 # build executable file the output is in dist dir
-pyinstaller --onefile --hidden-import=pandas,openpyxl parser_totals.py
+# pyinstaller --onefile --hidden-import=pandas,openpyxl parser_totals.py
+pyinstaller --onefile parser_totals.py
+
+# linux配置python开发环境
+yum install python38 python38-libs python38-devel python38-pip -y
+pip install pyinstaller
+pip3 install pycryptodomex
+pip3 install pandas
+pip3 install openpyxl
+
 
 # 1.5版本解决如何过滤埋数据RD的问题，当然这个也和vdbench脚本编写逻辑有关
 # 后面版本优化，最理想状态是可以自定义要过滤的titile和data关键字最好
@@ -7,3 +16,16 @@ pyinstaller --onefile --hidden-import=pandas,openpyxl parser_totals.py
 1.5.1 2023/08/27
 添加了判断区分block和file不同类型性能结果的判断逻辑，但是block性能数据处理代码还没写。
 
+1.6 2023/08/28
+添加license限制功能，license使用方法
+1.完整复制gen_license.py文件，用于生成License.dat文件
+2.复制主程序内license_check、parse_license_file、decrypt和get_sys_uuid函数
+3.在main最开始位置，添加get_sys_uuid和license_check函数
+
+使用方法：
+1.使用gen_license.py生成License.dat文件，生成格式参考帮助命令
+2.生成的License.dat虽然是明文的，但是都是经过加密处理，如果被编辑过，文件的指纹会变化
+3.主程序在运行时会获取系统的uuid和时间信息，和License.dat内容做对比，如果有任何一项不符合要求，会自动退出程序
+4.为了简化使用成本，这里把检查uuid的方法，设置为pass，即不检查uuid
+
+check_license.py程序还有待完善
