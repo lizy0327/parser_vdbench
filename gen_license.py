@@ -8,13 +8,14 @@
 # Email      : lizy0327@gmail.com
 # Version    : python 3.8
 # Software   : PyCharm
-# Description: Welcom!!!
+# Description: Welcome!!!
 """
 
-from Cryptodome.Cipher import AES
-from binascii import b2a_hex
-import sys
 import subprocess
+import sys
+from binascii import b2a_hex
+
+from Cryptodome.Cipher import AES
 
 version = '1.0.1'
 

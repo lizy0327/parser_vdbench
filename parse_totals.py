@@ -49,9 +49,9 @@ def is_time_format(line):
     return True
 
 
-def parse_totals(html_path):
+def parse_file_totals(html_path):
     """
-    此函数用来解析vdbench生成的totals.html文件，并返回2个list。
+    此函数用来解析vdbench生成的file类型的totals.html文件，并返回2个list。
     :param html_path:
     :return: data list
     """
@@ -97,11 +97,11 @@ def parse_totals(html_path):
             return title_lists, data_lists
     except SyntaxError:
         print(f"the file: {html_path} is not html format")
-    except Exception as e:
-        print(e)
+    except Exception as file_e:
+        print(file_e)
 
 
-def list_to_dict(title_list, data_list, is_debug):
+def file_list_to_dict(title_list, data_list, is_debug):
     """
     把多条list数据提取相同的数据类型分别写入不同的list，并把不同的list写入字典，以便写入excel文件。
     :param is_debug:
@@ -173,8 +173,131 @@ def list_to_dict(title_list, data_list, is_debug):
     data_dict.update({'total mbps': total_mbps_list})
     data_dict.update({'xfer size': xfer_size_list})
 
-    # 如果没有--debug标识，则不打印字典信息
-    # if intput_args()[-1]:
+    # 判断是否打印字典数据
+    if is_debug:
+        print(data_dict)
+    return data_dict
+
+
+def parse_block_totals(html_path):
+    """
+    此函数用来解析vdbench生成block的totals.html文件，并返回2个list。
+    :param html_path:
+    :return: data list
+    """
+    try:
+        # 读取HTML文件
+        with open(html_path, 'r') as block_file:
+            # 包内含rd名字和运行时间等属性的列表
+            title_lists = []
+            # 包含最终性能数据的列表
+            data_lists = []
+            for line in block_file.readlines():
+                # 处理标题内容，处理包含<a>和<b>标签之间的内容
+                if "name" in line:
+                    if "<a" in line:
+                        start_tag = '<b>'
+                        end_tag = '</b>'
+                        start_index = line.find(start_tag) + len(start_tag)
+                        end_index = line.find(end_tag)
+                        if start_index != -1 and end_index != -1:
+                            data = line[start_index:end_index]
+                            # 去除;和.
+                            data1 = data.replace(";", "")
+                            # 去除不需要的字段
+                            title_list = data1.split()
+                            title_list.remove("Starting")
+                            title_list.remove("For")
+                            title_list.remove("loops:")
+                            title_list.remove("I/O")
+                            if "Uncontrolled" in title_list:
+                                title_list.remove("Uncontrolled")
+                            if "Controlled" in title_list:
+                                title_list.remove("Controlled")
+                            title_list.remove("rate:")
+                            title_lists.append(title_list)
+                        else:
+                            print("No <b> tag found.")
+                    else:
+                        print("No <a> tag found.")
+                # 处理性能数据
+                if is_time_format(line):
+                    data_list = [item for item in line.split() if "avg" not in item]
+                    data_lists.append(data_list)
+            return title_lists, data_lists
+    except SyntaxError:
+        print(f"the block file: {html_path} is not html format")
+    except Exception as block_e:
+        print(block_e)
+
+
+def block_list_to_dict(title_list, data_list, is_debug):
+    """
+    把多条list数据提取相同的数据类型分别写入不同的list，并把不同的list写入字典，以便写入excel文件。
+    :param is_debug:
+    :param data_list:
+    :param title_list:
+    :return: perf dict
+    """
+    # 保存所有性能数据的字典
+    data_dict = {}
+    # 如果第1个list的总数大于第2个list，说明有未完成的rd，需要把第1个list最后的结果删除
+    if len(title_list) - len(data_list) == 1:
+        title_list.pop()
+        title_list = title_list
+        data_list = data_list
+    else:
+        title_list = title_list
+        data_list = data_list
+
+    # print(title_list)
+    # print(data_list)
+
+    # 处理title list数据
+    start_time_list = [item[0] for item in title_list]
+    rd_list = [item[1].split('=')[1] for item in title_list]
+    rate_list = [item[2] for item in title_list]
+    elapsed_list = [int(item[3].split('=')[1]) for item in title_list]
+    warmup_list = [int(item[4].split('=')[1]) for item in title_list]
+    threads_list = [int(item[5].split('=')[1]) for item in title_list]
+
+    # 更新title字典数据
+    data_dict.update({'start time': start_time_list})
+    data_dict.update({'rd name': rd_list})
+    data_dict.update({'rate': rate_list})
+    data_dict.update({'elapsed': elapsed_list})
+    data_dict.update({'warmup': warmup_list})
+    data_dict.update({'threads': threads_list})
+
+    # 处理data list数据
+    iops_list = [float(item[0]) for item in data_list]
+    mbps_list = [float(item[1]) for item in data_list]
+    block_size_list = [float(item[2]) for item in data_list]
+    read_pct_list = [float(item[3]) for item in data_list]
+    resp_time_list = [float(item[4]) for item in data_list]
+    read_resp_time_list = [float(item[5]) for item in data_list]
+    write_resp_time_list = [float(item[6]) for item in data_list]
+    resp_max_list = [float(item[7]) for item in data_list]
+    resp_stddev_list = [float(item[8]) for item in data_list]
+    queue_depth_list = [float(item[9]) for item in data_list]
+    cpu1_list = [float(item[10]) for item in data_list]
+    cpu2_list = [float(item[11]) for item in data_list]
+
+    # 更新data字典数据
+    data_dict.update({'iops': iops_list})
+    data_dict.update({'mbps': mbps_list})
+    data_dict.update({'block size': block_size_list})
+    data_dict.update({'read pct': read_pct_list})
+    data_dict.update({'resp time': resp_time_list})
+    data_dict.update({'read resp time': read_resp_time_list})
+    data_dict.update({'write rate time': write_resp_time_list})
+    data_dict.update({'resp max': resp_max_list})
+    data_dict.update({'resp stddev': resp_stddev_list})
+    data_dict.update({'queue depth': queue_depth_list})
+    data_dict.update({'cpu% sys+u': cpu1_list})
+    data_dict.update({'cpu% sys': cpu2_list})
+
+    # 判断是否打印字典数据
     if is_debug:
         print(data_dict)
     return data_dict
@@ -203,7 +326,6 @@ def intput_args():
     处理输入的参数
     :return:
     """
-
     # 创建 ArgumentParse 对象，使用formatter_class参数帮助文本的格式化方式为原始文本格式。这样可以保留文本中的换行符。
     arg_parse = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     # 添加版本信息
@@ -235,8 +357,9 @@ def license_check():
         sign_list = sign.split('#')
         uuid = sign_list[0].strip()
         date = sign_list[1].strip()
-    except Exception as e:
+    except Exception as license_e:
         print("The license's sign is invalid!!!")
+        print(license_e)
         sys.exit(1)
 
     # Check license file is modified or not.
@@ -295,7 +418,7 @@ if __name__ == '__main__':
     # 获取OS UUID
     get_sys_uuid()
     # 检查license授权
-    license_check()
+    # license_check()
 
     # 获取所有参数
     known_args = intput_args()[0]
@@ -311,10 +434,7 @@ if __name__ == '__main__':
         else:
             print("intput must be a file.")
             sys.exit()
-    # except Exception as isfile:
-    #     print(isfile)
 
-    # try:
         # 如果不指定输出目录，则在同目录下生成输出文件
         if known_args.output_dir is None:
             output_dir = os.path.dirname(input_file)
@@ -325,21 +445,20 @@ if __name__ == '__main__':
             else:
                 print("output must be a dir.")
                 sys.exit()
-    # except Exception as outdir:
-    #     print(outdir)
 
-    # 执行文件解析和输出
-    # try:
-        # 读取HTML文件
+        # 执行文件解析和输出,读取HTML文件
         with open(input_file, 'r') as file:
-            # 判断是否是文件类型性能测试
+            # 文件类型性能测试
             if "<A" and "format" in file.readlines()[4]:
-                lists = parse_totals(input_file)
-                perf_dict = list_to_dict(lists[0], lists[1], is_debug=known_args.debug)
-                write_excel(perf_dict, output_path=output_dir,
+                file_lists = parse_file_totals(input_file)
+                file_perf_dict = file_list_to_dict(file_lists[0], file_lists[1], is_debug=known_args.debug)
+                write_excel(file_perf_dict, output_path=output_dir,
                             result_name=input_file.split("/")[-1].split(".")[0])
             else:
                 # 块设备类型性能测试
-                print("block io result.")
+                block_lists = parse_block_totals(input_file)
+                block_perf_dict = block_list_to_dict(block_lists[0], block_lists[1], is_debug=known_args.debug)
+                write_excel(block_perf_dict, output_path=output_dir,
+                            result_name=input_file.split("/")[-1].split(".")[0])
     except Exception as e:
         print(e)

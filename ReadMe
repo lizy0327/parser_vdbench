@@ -41,3 +41,6 @@ pip3 install openpyxl
 2.0.1
 修复参数检查bug
 
+3.0
+新增对块设备结果的解析功能
+
