@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # -*-coding:utf-8 -*-
 """
-# File       : parser_vdbench.py
+# File       : parse_vdbench.py
 # Time       : 2023-06-20 14:44
 # Author     : lizy
 # Email      : lizy0327@gmail.com
@@ -49,7 +49,7 @@ def is_time_format(line):
     return True
 
 
-def parser_totals(html_path):
+def parse_totals(html_path):
     """
     此函数用来解析vdbench生成的totals.html文件，并返回2个list。
     :param html_path:
@@ -101,7 +101,7 @@ def parser_totals(html_path):
         print(e)
 
 
-def list_to_dict(title_list, data_list):
+def list_to_dict(title_list, data_list, is_debug):
     """
     把多条list数据提取相同的数据类型分别写入不同的list，并把不同的list写入字典，以便写入excel文件。
     :param data_list:
@@ -173,7 +173,8 @@ def list_to_dict(title_list, data_list):
     data_dict.update({'xfer size': xfer_size_list})
 
     # 如果没有--debug标识，则不打印字典信息
-    if intput_args()[-1]:
+    # if intput_args()[-1]:
+    if is_debug:
         print(data_dict)
     return data_dict
 
@@ -183,15 +184,15 @@ def write_excel(data_dict, output_path, result_name):
     df = pd.DataFrame(data_dict)
 
     # 如果文件已存在，会生成新的文件
-    if os.path.exists(os.path.dirname(output_path) + "/" + result_name + ".xlsx"):
+    if os.path.exists(output_path + "/" + result_name + ".xlsx"):
         # 生成随机数字戳
         time_stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime())
         # 拼接新的路径
-        new_path = os.path.join(os.path.dirname(output_path) + "/" + result_name + "_" + time_stamp + ".xlsx")
+        new_path = os.path.join(output_path + "/" + result_name + "_" + time_stamp + ".xlsx")
         df.to_excel(new_path, index=False)
         print(f"The file path is : {new_path}")
     else:
-        file_path = os.path.dirname(output_path) + "/" + result_name + ".xlsx"
+        file_path = output_path + "/" + result_name + ".xlsx"
         df.to_excel(file_path, index=False)
         print(f"The file path is : {file_path}")
 
@@ -202,26 +203,27 @@ def intput_args():
     :return:
     """
 
-    # 创建 ArgumentParser 对象，使用formatter_class参数帮助文本的格式化方式为原始文本格式。这样可以保留文本中的换行符。
-    arg_parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+    # 创建 ArgumentParse 对象，使用formatter_class参数帮助文本的格式化方式为原始文本格式。这样可以保留文本中的换行符。
+    arg_parse = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     # 添加版本信息
-    arg_parser.add_argument('-v', '--version', action='version', version='1.6', help='Show version')
+    arg_parse.add_argument('-v', '--version', action='version', version='1.6', help='Show version')
     # 添加 debug 参数，如果添加了debug参数则为True，否则为False
-    arg_parser.add_argument('--debug', action='store_true',
-                            help='Enable debug mode. \nExample:parser_totals <totals.html> --debug')
-    arg_parser.add_argument('--example', help='parser_totals <totals.html>')
-    # 解析命令行参数，known_args包含除--debug以外的所有参数
-    args, known_args = arg_parser.parse_known_args()
+    arg_parse.add_argument('--debug', action='store_true',
+                            help='Enable debug mode. \nExample:parse_totals <totals.html> --debug')
+    # 定义输出目录参数
+    arg_parse.add_argument("-C", "--output_dir", help="Specify the output directory.")
+    # 定义解析文件参数
+    arg_parse.add_argument("-f", "--totals_file", required=True, help='Specify the totals.html file.')
+    arg_parse.add_argument('--example', help='parse_totals <totals.html>')
+    # 解析命令行参数，返回1个元组，args包含了所有已知参数，un_args包含了未知参数列表
+    args, un_args = arg_parse.parse_known_args()
 
     # 如果没有任何参数，打印帮助
     if len(sys.argv) == 1:
-        arg_parser.print_help()
+        arg_parse.print_help()
         sys.exit()
-    # 判断是否启用了 debug 模式
-    elif args.debug:
-        return known_args, True
-    else:
-        return known_args, False
+    elif len(sys.argv) > 1:
+        return args, un_args
 
 
 # License check
@@ -293,26 +295,41 @@ if __name__ == '__main__':
     get_sys_uuid()
     # 检查license授权
     license_check()
-    # 只允许传入1个参数，默认会在文件同目录下生成xlsx文件
-    if len(intput_args()[0]) == 1:
-        if os.path.isfile(intput_args()[0][0]):
-            # 获取参数列表里的第1个参数
-            input_path = os.path.abspath(intput_args()[0][0]).replace("\\", "/")
-            try:
-                # 读取HTML文件
-                with open(input_path, 'r') as file:
-                    # 判断是否是文件类型性能测试
-                    if "<A" and "format" in file.readlines()[4]:
-                        lists = parser_totals(input_path)
-                        perf_dict = list_to_dict(lists[0], lists[1])
-                        write_excel(perf_dict, output_path=input_path,
-                                    result_name=input_path.split("/")[-1].split(".")[0])
-                    else:
-                        # 块设备类型性能测试
-                        print("block io result.")
-            except Exception as e:
-                print(e)
-        else:
-            print("there is no such as file.")
+
+    # 获取所有参数
+    known_args = intput_args()[0]
+    unknown_args = intput_args()[1]
+
+    # 被解析路径必须为文件格式
+    if os.path.isfile(known_args.totals_file):
+        input_file = os.path.abspath(known_args.totals_file).replace("\\", "/")
     else:
-        print("param is invalid, only one param.")
+        print("intput must be a file.")
+        sys.exit()
+
+    # 如果不指定输出目录，则在同目录下生成输出文件
+    if known_args.output_dir is None:
+        output_dir = os.path.dirname(input_file)
+    else:
+        # 文件输出路径必须为目录格式
+        if os.path.isdir(known_args.output_dir):
+            output_dir = os.path.abspath(known_args.output_dir).replace("\\", "/")
+        else:
+            print("output must be a dir.")
+            sys.exit()
+
+    # 执行文件解析和输出
+    try:
+        # 读取HTML文件
+        with open(input_file, 'r') as file:
+            # 判断是否是文件类型性能测试
+            if "<A" and "format" in file.readlines()[4]:
+                lists = parse_totals(input_file)
+                perf_dict = list_to_dict(lists[0], lists[1], is_debug=known_args.debug)
+                write_excel(perf_dict, output_path=output_dir,
+                            result_name=input_file.split("/")[-1].split(".")[0])
+            else:
+                # 块设备类型性能测试
+                print("block io result.")
+    except Exception as e:
+        print(e)

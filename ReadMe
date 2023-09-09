@@ -1,6 +1,6 @@
 # build executable file the output is in dist dir
 # pyinstaller --onefile --hidden-import=pandas,openpyxl parser_totals.py
-pyinstaller --onefile parser_totals.py
+pyinstaller --onefile parse_totals.py
 
 # linux配置python开发环境
 yum install python38 python38-libs python38-devel python38-pip -y
@@ -10,6 +10,11 @@ pip3 install pandas
 pip3 install openpyxl
 
 
+###### 待办事项
+1.check_license.py程序还有待完善
+
+
+###### Change log
 # 1.5版本解决如何过滤埋数据RD的问题，当然这个也和vdbench脚本编写逻辑有关
 # 后面版本优化，最理想状态是可以自定义要过滤的titile和data关键字最好
 
@@ -28,4 +33,8 @@ pip3 install openpyxl
 3.主程序在运行时会获取系统的uuid和时间信息，和License.dat内容做对比，如果有任何一项不符合要求，会自动退出程序
 4.为了简化使用成本，这里把检查uuid的方法，设置为pass，即不检查uuid
 
-check_license.py程序还有待完善
+2.0 2023/09/09
+1.修改parser_totals为parse_totals
+2.优化了文件input和output路径转换逻辑
+3.重点是进一步熟悉了argparse的用法，优化了参数判断，可以指定-f/-C/--debug等参数，而且不用人为的判断参数位置和数量
+
