@@ -38,3 +38,6 @@ pip3 install openpyxl
 2.优化了文件input和output路径转换逻辑
 3.重点是进一步熟悉了argparse的用法，优化了参数判断，可以指定-f/-C/--debug等参数，而且不用人为的判断参数位置和数量
 
+2.0.1
+修复参数检查bug
+

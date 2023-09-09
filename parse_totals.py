@@ -210,12 +210,12 @@ def intput_args():
     arg_parse.add_argument('-v', '--version', action='version', version='2.0', help='Show version')
     # 添加 debug 参数，如果添加了debug参数则为True，否则为False
     arg_parse.add_argument('--debug', action='store_true',
-                            help='Enable debug mode. \nExample:parse_totals <totals.html> --debug')
+                            help='Enable debug mode. \nExample:parse_totals -f <totals.html> --debug')
     # 定义输出目录参数
     arg_parse.add_argument("-C", "--output_dir", help="Specify the output directory.")
     # 定义解析文件参数
-    arg_parse.add_argument("-f", "--totals_file", required=True, help='Specify the totals.html file.')
-    arg_parse.add_argument('--example', help='parse_totals <totals.html>')
+    arg_parse.add_argument("-f", "--totals_file", help='Specify the totals.html file.')
+    arg_parse.add_argument('--example', help='parse_totals -f <totals.html>')
     # 解析命令行参数，返回1个元组，args包含了所有已知参数，un_args包含了未知参数列表
     args, un_args = arg_parse.parse_known_args()
 
@@ -300,27 +300,36 @@ if __name__ == '__main__':
     # 获取所有参数
     known_args = intput_args()[0]
     unknown_args = intput_args()[1]
-
-    # 被解析路径必须为文件格式
-    if os.path.isfile(known_args.totals_file):
-        input_file = os.path.abspath(known_args.totals_file).replace("\\", "/")
-    else:
-        print("intput must be a file.")
-        sys.exit()
-
-    # 如果不指定输出目录，则在同目录下生成输出文件
-    if known_args.output_dir is None:
-        output_dir = os.path.dirname(input_file)
-    else:
-        # 文件输出路径必须为目录格式
-        if os.path.isdir(known_args.output_dir):
-            output_dir = os.path.abspath(known_args.output_dir).replace("\\", "/")
-        else:
-            print("output must be a dir.")
+    try:
+        # 因为-f参数是必选，有必要判断是否非空
+        if known_args.totals_file is None:
+            print("The -f parameter is required.")
             sys.exit()
+        # 被解析路径必须为文件格式
+        if os.path.isfile(known_args.totals_file):
+            input_file = os.path.abspath(known_args.totals_file).replace("\\", "/")
+        else:
+            print("intput must be a file.")
+            sys.exit()
+    # except Exception as isfile:
+    #     print(isfile)
+
+    # try:
+        # 如果不指定输出目录，则在同目录下生成输出文件
+        if known_args.output_dir is None:
+            output_dir = os.path.dirname(input_file)
+        else:
+            # 文件输出路径必须为目录格式
+            if os.path.isdir(known_args.output_dir):
+                output_dir = os.path.abspath(known_args.output_dir).replace("\\", "/")
+            else:
+                print("output must be a dir.")
+                sys.exit()
+    # except Exception as outdir:
+    #     print(outdir)
 
     # 执行文件解析和输出
-    try:
+    # try:
         # 读取HTML文件
         with open(input_file, 'r') as file:
             # 判断是否是文件类型性能测试
