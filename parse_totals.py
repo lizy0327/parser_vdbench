@@ -7,7 +7,7 @@
 # Email      : lizy0327@gmail.com
 # Version    : python 3.9
 # Software   : PyCharm
-# Description: Welcom!!!
+# Description: Welcome!!!
 """
 import os
 import sys
@@ -104,6 +104,7 @@ def parse_totals(html_path):
 def list_to_dict(title_list, data_list, is_debug):
     """
     把多条list数据提取相同的数据类型分别写入不同的list，并把不同的list写入字典，以便写入excel文件。
+    :param is_debug:
     :param data_list:
     :param title_list:
     :return: perf dict
@@ -206,7 +207,7 @@ def intput_args():
     # 创建 ArgumentParse 对象，使用formatter_class参数帮助文本的格式化方式为原始文本格式。这样可以保留文本中的换行符。
     arg_parse = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     # 添加版本信息
-    arg_parse.add_argument('-v', '--version', action='version', version='1.6', help='Show version')
+    arg_parse.add_argument('-v', '--version', action='version', version='2.0', help='Show version')
     # 添加 debug 参数，如果添加了debug参数则为True，否则为False
     arg_parse.add_argument('--debug', action='store_true',
                             help='Enable debug mode. \nExample:parse_totals <totals.html> --debug')
