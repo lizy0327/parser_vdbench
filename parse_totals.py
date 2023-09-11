@@ -129,6 +129,7 @@ def file_list_to_dict(title_list, data_list, is_debug):
     elapsed_list = [int(item[2].split('=')[1]) for item in title_list]
     warmup_list = [int(item[3].split('=')[1]) for item in title_list]
     rate_list = [item[4].split('=')[1].replace(".", "") for item in title_list]
+    # 由于RD使用的参数不同，会导致title内容也会有差异
     rdpct_list = [int(item[5].split('=')[1]) if len(item) == 8 else 'no rdpct' for item in title_list]
     xfersize_list = [item[6].split('=')[1] if len(item) == 8 else item[5].split('=')[1] for item in title_list]
     threads_list = [int(item[7].split('=')[1]) if len(item) == 8 else int(item[6].split('=')[1]) for item in
@@ -259,7 +260,11 @@ def block_list_to_dict(title_list, data_list, is_debug):
     rate_list = [item[2] for item in title_list]
     elapsed_list = [int(item[3].split('=')[1]) for item in title_list]
     warmup_list = [int(item[4].split('=')[1]) for item in title_list]
-    threads_list = [int(item[5].split('=')[1]) for item in title_list]
+    # 由于RD使用的参数不同，会导致title内容也会有差异
+    rdpct_list = [int(item[5].split('=')[1]) if len(item) == 8 else 'no rdpct' for item in title_list]
+    xfersize_list = [item[6].split('=')[1] if len(item) == 8 else 'no xfersize' for item in title_list]
+    threads_list = [int(item[7].split('=')[1]) if len(item) == 8 else int(item[5].split('=')[1]) for item in
+                    title_list]
 
     # 更新title字典数据
     data_dict.update({'start time': start_time_list})
@@ -267,35 +272,67 @@ def block_list_to_dict(title_list, data_list, is_debug):
     data_dict.update({'rate': rate_list})
     data_dict.update({'elapsed': elapsed_list})
     data_dict.update({'warmup': warmup_list})
+    if rdpct_list[0] != 'no rdpct':
+        data_dict.update({'rdpct': rdpct_list})
+    if xfersize_list[0] != 'no xfersize':
+        data_dict.update({'xfersize': xfersize_list})
     data_dict.update({'threads': threads_list})
 
-    # 处理data list数据
-    iops_list = [float(item[0]) for item in data_list]
-    mbps_list = [float(item[1]) for item in data_list]
-    block_size_list = [float(item[2]) for item in data_list]
-    read_pct_list = [float(item[3]) for item in data_list]
-    resp_time_list = [float(item[4]) for item in data_list]
-    read_resp_time_list = [float(item[5]) for item in data_list]
-    write_resp_time_list = [float(item[6]) for item in data_list]
-    resp_max_list = [float(item[7]) for item in data_list]
-    resp_stddev_list = [float(item[8]) for item in data_list]
-    queue_depth_list = [float(item[9]) for item in data_list]
-    cpu1_list = [float(item[10]) for item in data_list]
-    cpu2_list = [float(item[11]) for item in data_list]
+    if is_time_format(data_list[0][0]):
+        # 如果第1个元素是时间格式，那么iops应该从list[1]开始
+        iops_list = [float(item[1]) for item in data_list]
+        mbps_list = [float(item[2]) for item in data_list]
+        block_size_list = [float(item[3]) for item in data_list]
+        read_pct_list = [float(item[4]) for item in data_list]
+        resp_time_list = [float(item[5]) for item in data_list]
+        read_resp_time_list = [float(item[6]) for item in data_list]
+        write_resp_time_list = [float(item[7]) for item in data_list]
+        resp_max_list = [float(item[8]) for item in data_list]
+        resp_stddev_list = [float(item[9]) for item in data_list]
+        queue_depth_list = [float(item[10]) for item in data_list]
+        cpu1_list = [float(item[11]) for item in data_list]
+        cpu2_list = [float(item[12]) for item in data_list]
 
-    # 更新data字典数据
-    data_dict.update({'iops': iops_list})
-    data_dict.update({'mbps': mbps_list})
-    data_dict.update({'block size': block_size_list})
-    data_dict.update({'read pct': read_pct_list})
-    data_dict.update({'resp time': resp_time_list})
-    data_dict.update({'read resp time': read_resp_time_list})
-    data_dict.update({'write rate time': write_resp_time_list})
-    data_dict.update({'resp max': resp_max_list})
-    data_dict.update({'resp stddev': resp_stddev_list})
-    data_dict.update({'queue depth': queue_depth_list})
-    data_dict.update({'cpu% sys+u': cpu1_list})
-    data_dict.update({'cpu% sys': cpu2_list})
+        # 更新data字典数据
+        data_dict.update({'iops': iops_list})
+        data_dict.update({'mbps': mbps_list})
+        data_dict.update({'block size': block_size_list})
+        data_dict.update({'read pct': read_pct_list})
+        data_dict.update({'resp time': resp_time_list})
+        data_dict.update({'read resp time': read_resp_time_list})
+        data_dict.update({'write rate time': write_resp_time_list})
+        data_dict.update({'resp max': resp_max_list})
+        data_dict.update({'resp stddev': resp_stddev_list})
+        data_dict.update({'queue depth': queue_depth_list})
+        data_dict.update({'cpu% sys+u': cpu1_list})
+        data_dict.update({'cpu% sys': cpu2_list})
+    else:
+        iops_list = [float(item[0]) for item in data_list]
+        mbps_list = [float(item[1]) for item in data_list]
+        block_size_list = [float(item[2]) for item in data_list]
+        read_pct_list = [float(item[3]) for item in data_list]
+        resp_time_list = [float(item[4]) for item in data_list]
+        read_resp_time_list = [float(item[5]) for item in data_list]
+        write_resp_time_list = [float(item[6]) for item in data_list]
+        resp_max_list = [float(item[7]) for item in data_list]
+        resp_stddev_list = [float(item[8]) for item in data_list]
+        queue_depth_list = [float(item[9]) for item in data_list]
+        cpu1_list = [float(item[10]) for item in data_list]
+        cpu2_list = [float(item[11]) for item in data_list]
+
+        # 更新data字典数据
+        data_dict.update({'iops': iops_list})
+        data_dict.update({'mbps': mbps_list})
+        data_dict.update({'block size': block_size_list})
+        data_dict.update({'read pct': read_pct_list})
+        data_dict.update({'resp time': resp_time_list})
+        data_dict.update({'read resp time': read_resp_time_list})
+        data_dict.update({'write rate time': write_resp_time_list})
+        data_dict.update({'resp max': resp_max_list})
+        data_dict.update({'resp stddev': resp_stddev_list})
+        data_dict.update({'queue depth': queue_depth_list})
+        data_dict.update({'cpu% sys+u': cpu1_list})
+        data_dict.update({'cpu% sys': cpu2_list})
 
     # 判断是否打印字典数据
     if is_debug:
@@ -329,7 +366,7 @@ def intput_args():
     # 创建 ArgumentParse 对象，使用formatter_class参数帮助文本的格式化方式为原始文本格式。这样可以保留文本中的换行符。
     arg_parse = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     # 添加版本信息
-    arg_parse.add_argument('-v', '--version', action='version', version='3.0', help='Show version')
+    arg_parse.add_argument('-v', '--version', action='version', version='3.0.1', help='Show version')
     # 添加 debug 参数，如果添加了debug参数则为True，否则为False
     arg_parse.add_argument('--debug', action='store_true',
                             help='Enable debug mode. \nExample:parse_totals -f <totals.html> --debug')
