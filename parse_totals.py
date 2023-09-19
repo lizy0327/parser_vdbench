@@ -64,7 +64,7 @@ def parse_file_totals(html_path):
             data_lists = []
             for line in file.readlines():
                 # 过滤重新埋数据的RD
-                if "RD=format" not in line and "avg_2-1" not in line and "fill" not in line:
+                if "RD=format" not in line and "avg_2-" not in line and "fill" not in line:
                     '''
                     avg_2-1,前面的2代表warmup+1时长，最后的1代表运行了总时长（warmup+elapsed）。比如avg_13-25，代表warmup是12秒，
                     elapsed是13秒。
@@ -340,22 +340,11 @@ def block_list_to_dict(title_list, data_list, is_debug):
     return data_dict
 
 
-def write_excel(data_dict, output_path, result_name):
-    os.path.abspath(output_path.replace("\\", "/"))
+def write_excel(data_dict, path):
+    os.path.abspath(path.replace("\\", "/"))
     df = pd.DataFrame(data_dict)
-
-    # 如果文件已存在，会生成新的文件
-    if os.path.exists(output_path + "/" + result_name + ".xlsx"):
-        # 生成随机数字戳
-        time_stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime())
-        # 拼接新的路径
-        new_path = os.path.join(output_path + "/" + result_name + "_" + time_stamp + ".xlsx")
-        df.to_excel(new_path, index=False)
-        print(f"The file path is : {new_path}")
-    else:
-        file_path = output_path + "/" + result_name + ".xlsx"
-        df.to_excel(file_path, index=False)
-        print(f"The file path is : {file_path}")
+    df.to_excel(path, index=False)
+    print(f"The file path is : {path}")
 
 
 def intput_args():
@@ -366,12 +355,12 @@ def intput_args():
     # 创建 ArgumentParse 对象，使用formatter_class参数帮助文本的格式化方式为原始文本格式。这样可以保留文本中的换行符。
     arg_parse = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     # 添加版本信息
-    arg_parse.add_argument('-v', '--version', action='version', version='3.0.1', help='Show version')
+    arg_parse.add_argument('-v', '--version', action='version', version='3.1.0', help='Show version')
     # 添加 debug 参数，如果添加了debug参数则为True，否则为False
     arg_parse.add_argument('--debug', action='store_true',
-                            help='Enable debug mode. \nExample:parse_totals -f <totals.html> --debug')
+                           help='Enable debug mode. \nExample:parse_totals -f <totals.html> --debug')
     # 定义输出目录参数
-    arg_parse.add_argument("-C", "--output_dir", help="Specify the output directory.")
+    arg_parse.add_argument("-C", "--output_path", help="The path can be dir or file.")
     # 定义解析文件参数
     arg_parse.add_argument("-f", "--totals_file", help='Specify the totals.html file.')
     arg_parse.add_argument('--example', help='parse_totals -f <totals.html>')
@@ -451,6 +440,65 @@ def get_sys_uuid():
     return stdout_list[0]
 
 
+def create_random_file(path):
+    """
+    如果文件名称已经存在，则在文件名后面添加随机数
+    :param path:
+    :return:
+    """
+    exist_dir = "/".join(path.split('/')[:-1])
+    exist_file_name = path.split('/')[-1]
+    # 生成随机数字戳
+    time_stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime())
+    # 拼接新的路径
+    new_path = os.path.join(exist_dir + "/" + exist_file_name.split('.')[0] + "_" + time_stamp + ".xlsx")
+    return new_path
+
+
+def return_filepath(filepath):
+    """
+    返回一个保存xlsx文件的目录。此函数可以处理以下几种情况：
+    1.可以接收已经存在的目录路径
+    2.可以接收已经存在的文件路径
+    3.可以接收不存在的目录文件或文件，或二者只有一个存在的情况
+    :param filepath:
+    :return:
+    """
+    # 把路径所有反斜杠转换为正斜杠，避免出现windows和linux路径斜杠不一样的问题
+    filepath = os.path.abspath(filepath).replace("\\", "/")
+
+    # 如果是一个文件，则根据文件后缀名进行判断处理逻辑
+    if os.path.isfile(filepath):
+        # 如果路径中包含.xlsx扩展名（有点号），直接返回路径
+        if ".xlsx" in os.path.splitext(filepath)[-1]:
+            return filepath
+        # 如果是一个文件，则自动根据文件生成新的后缀名称文件
+        else:
+            return os.path.abspath(filepath + ".xlsx").replace("\\", "/")
+    # 如果是一个目录，则在此目录下生成totals.xlsx文件
+    elif os.path.isdir(filepath):
+        return os.path.abspath(filepath + "/" + "totals.xlsx").replace("\\", "/")
+    else:
+        # 如果路径里包含.xlsx后缀，则同时创建目录和文件
+        if ".xlsx" in os.path.splitext(filepath)[-1]:
+            # 根据文件名称，创建目录
+            new_dir = "/".join(filepath.split('/')[:-1])
+            new_file = filepath.split('/')[-1]
+            # 如果文件是不存在的，但是目录已经存在了
+            if os.path.exists(new_dir):
+                return os.path.abspath(new_dir + "/" + new_file).replace("\\", "/")
+            # 无论目录还是文件都是新的
+            else:
+                os.mkdir(new_dir)
+                print(f"Create new dir: {new_dir}")
+                return os.path.abspath(new_dir + "/" + new_file).replace("\\", "/")
+        # 路径里没有.xlsx后缀，只创建新目录
+        else:
+            os.mkdir(filepath)
+            print(f"Create new dir: {filepath}")
+            return os.path.abspath(filepath + "/" + "totals.xlsx").replace("\\", "/")
+
+
 if __name__ == '__main__':
     # 获取OS UUID
     get_sys_uuid()
@@ -471,17 +519,14 @@ if __name__ == '__main__':
         else:
             print("intput must be a file.")
             sys.exit()
-
-        # 如果不指定输出目录，则在同目录下生成输出文件
-        if known_args.output_dir is None:
-            output_dir = os.path.dirname(input_file)
+        # 如果没有指定-C参数，则在同名目录下产生文件
+        if known_args.output_path is None:
+            output_path = os.path.abspath(os.getcwd() + "/" + "totals.xlsx").replace("\\", "/")
         else:
-            # 文件输出路径必须为目录格式
-            if os.path.isdir(known_args.output_dir):
-                output_dir = os.path.abspath(known_args.output_dir).replace("\\", "/")
-            else:
-                print("output must be a dir.")
-                sys.exit()
+            output_path = return_filepath(known_args.output_path)
+        # 判断文件是否存在
+        if os.path.exists(output_path):
+            output_path = create_random_file(output_path)
 
         # 执行文件解析和输出,读取HTML文件
         with open(input_file, 'r') as file:
@@ -489,13 +534,11 @@ if __name__ == '__main__':
             if "<A" and "format" in file.readlines()[4]:
                 file_lists = parse_file_totals(input_file)
                 file_perf_dict = file_list_to_dict(file_lists[0], file_lists[1], is_debug=known_args.debug)
-                write_excel(file_perf_dict, output_path=output_dir,
-                            result_name=input_file.split("/")[-1].split(".")[0])
+                write_excel(file_perf_dict, path=output_path)
             else:
                 # 块设备类型性能测试
                 block_lists = parse_block_totals(input_file)
                 block_perf_dict = block_list_to_dict(block_lists[0], block_lists[1], is_debug=known_args.debug)
-                write_excel(block_perf_dict, output_path=output_dir,
-                            result_name=input_file.split("/")[-1].split(".")[0])
+                write_excel(block_perf_dict, path=output_path)
     except Exception as e:
         print(e)
