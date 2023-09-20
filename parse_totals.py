@@ -355,7 +355,7 @@ def intput_args():
     # 创建 ArgumentParse 对象，使用formatter_class参数帮助文本的格式化方式为原始文本格式。这样可以保留文本中的换行符。
     arg_parse = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     # 添加版本信息
-    arg_parse.add_argument('-v', '--version', action='version', version='3.1.0', help='Show version')
+    arg_parse.add_argument('-v', '--version', action='version', version='3.1.1', help='Show version')
     # 添加 debug 参数，如果添加了debug参数则为True，否则为False
     arg_parse.add_argument('--debug', action='store_true',
                            help='Enable debug mode. \nExample:parse_totals -f <totals.html> --debug')
@@ -422,7 +422,7 @@ def parse_license_file():
                     license_dic[my_match.group(1)] = my_match.group(2)
         return license_dic
     except FileNotFoundError:
-        print("License file is not found")
+        print("License file is not found.")
         sys.exit()
 
 
@@ -503,7 +503,7 @@ if __name__ == '__main__':
     # 获取OS UUID
     get_sys_uuid()
     # 检查license授权
-    # license_check()
+    license_check()
 
     # 获取所有参数
     known_args = intput_args()[0]
