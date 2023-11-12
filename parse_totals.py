@@ -346,7 +346,7 @@ def intput_args():
     # 创建 ArgumentParse 对象，使用formatter_class参数帮助文本的格式化方式为原始文本格式。这样可以保留文本中的换行符。
     arg_parse = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     # 添加版本信息
-    arg_parse.add_argument('-v', '--version', action='version', version='4.0.0', help='Show version')
+    arg_parse.add_argument('-v', '--version', action='version', version='4.1', help='Show version')
     # 添加 debug 参数，如果添加了debug参数则为True，否则为False
     arg_parse.add_argument('--debug', action='store_true',
                            help='Enable debug mode. \nExample:parse_totals -f <totals.html> --debug')
@@ -403,9 +403,21 @@ def license_check():
 
 
 def parse_license_file():
+    license_dir = "/opt/parse_totals/"
+    license_file = os.path.join(license_dir, "License.dat").replace("\\", "/")
+    # 使用跨平台路径，规范化路径
+    base_path = os.path.normpath(license_dir)
+
+    # 检查license目录是否存在
+    if not os.path.exists(base_path):
+        try:
+            os.makedirs(base_path)
+            print(f"The dir '{base_path}' create success.")
+        except OSError as e:
+            print(f"Error: The dir '{base_path}' create failed - {e}")
+
     try:
         license_dic = {}
-        license_file = './License.dat'
         with open(license_file, 'r') as LF:
             for line in LF.readlines():
                 if re.match('^\s*(\S+)\s*:\s*(\S+)\s*$', line):
@@ -413,7 +425,7 @@ def parse_license_file():
                     license_dic[my_match.group(1)] = my_match.group(2)
         return license_dic
     except FileNotFoundError:
-        print("License file is not found.")
+        print(f"ERROR: License file '{license_file}' not found.")
         sys.exit()
 
 

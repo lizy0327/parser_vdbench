@@ -53,7 +53,7 @@ def license_check():
 
 def parse_license_file():
     license_dic = {}
-    license_file = './License.dat'
+    license_file = 'opt/parse_totals/License.dat'
     with open(license_file, 'r') as LF:
         for line in LF.readlines():
             if re.match('^\s*(\S+)\s*:\s*(\S+)\s*$', line):

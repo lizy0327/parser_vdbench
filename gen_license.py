@@ -53,7 +53,7 @@ def encrypt(content):
 
 
 def gen_license_file(uuid, date):
-    license_file = './License.dat'
+    license_file = 'opt/parse_totals/License.dat'
     with open(license_file, 'w') as LF:
         LF.write(f'UUID : {uuid}\n')
         LF.write(f'Date : {date}\n')
