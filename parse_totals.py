@@ -9,16 +9,17 @@
 # Software   : PyCharm
 # Description: Welcome!!!
 """
-import os
-import sys
 import argparse
-import re
-import time
 import datetime
+import os
+import re
+import subprocess
+import sys
+import time
+from binascii import a2b_hex
+
 import pandas as pd
 from Cryptodome.Cipher import AES
-from binascii import a2b_hex
-import subprocess
 
 
 def is_time_format(line):
@@ -63,37 +64,39 @@ def parse_file_totals(html_path):
             # 包含最终性能数据的列表
             data_lists = []
             for line in file.readlines():
-                # 过滤重新埋数据的RD
-                if "RD=format" not in line and "avg_2-" not in line and "fill" not in line:
-                    '''
-                    avg_2-1,前面的2代表warmup+1时长，最后的1代表运行了总时长（warmup+elapsed）。比如avg_13-25，代表warmup是12秒，
-                    elapsed是13秒。
-                    '''
-                    # 处理标题内容，处理包含<a>和<b>标签之间的内容
-                    if "name" in line:
-                        if "<a" in line:
-                            start_tag = '<b>'
-                            end_tag = '</b>'
-                            start_index = line.find(start_tag) + len(start_tag)
-                            end_index = line.find(end_tag)
-                            if start_index != -1 and end_index != -1:
-                                data = line[start_index:end_index]
-                                # 去除;和.
-                                data1 = data.replace(";", "")
-                                # 去除不需要的字段
-                                title_list = data1.split()
-                                title_list.remove("Starting")
-                                title_list.remove("For")
-                                title_list.remove("loops:")
-                                title_lists.append(title_list)
-                            else:
-                                print("No <b> tag found.")
+                """
+                处理标题内容，处理包含<a>和<b>标签之间的内容
+                avg_2-1,前面的2代表warmup+1时长，最后的1代表运行了总时长（warmup+elapsed）。比如avg_13-25，代表warmup是12秒，
+                elapsed是13秒。如果不在rd里指定warmup，那么这里avg后面一定是2。
+                """
+
+                # 过滤RD=format这种埋数据的数据
+                if "RD=format" not in line and "name" in line:
+                    if "<a" in line:
+                        start_tag = '<b>'
+                        end_tag = '</b>'
+                        start_index = line.find(start_tag) + len(start_tag)
+                        end_index = line.find(end_tag)
+                        if start_index != -1 and end_index != -1:
+                            data = line[start_index:end_index]
+                            # 去除;和.
+                            data1 = data.replace(";", "")
+                            # 去除不需要的字段
+                            title_list = data1.split()
+                            title_list.remove("Starting")
+                            title_list.remove("For")
+                            title_list.remove("loops:")
+                            if "None" in title_list:
+                                title_list.remove("None")
+                            title_lists.append(title_list)
                         else:
-                            print("No <a> tag found.")
-                    # 处理性能数据
-                    if is_time_format(line):
-                        data_list = [item for item in line.split() if "avg" not in item]
-                        data_lists.append(data_list)
+                            print("No <b> tag found.")
+                    else:
+                        print("No <a> tag found.")
+                # 处理性能数据，过滤掉埋数据以及检查文件的rd结果。第20个元素描述的是create的性能，第3个元素是真正的性能值
+                if "avg" in line and line.split()[19] == '0.0' and line.split()[2] != '0.0' and is_time_format(line):
+                    data_list = [item for item in line.split() if "avg" not in item]
+                    data_lists.append(data_list)
             return title_lists, data_lists
     except SyntaxError:
         print(f"the file: {html_path} is not html format")
@@ -101,78 +104,63 @@ def parse_file_totals(html_path):
         print(file_e)
 
 
-def file_list_to_dict(title_list, data_list, is_debug):
+def file_list_to_dict(title_lists, data_lists, is_debug):
     """
     把多条list数据提取相同的数据类型分别写入不同的list，并把不同的list写入字典，以便写入excel文件。
     :param is_debug:
-    :param data_list:
-    :param title_list:
+    :param data_lists:
+    :param title_lists:
     :return: perf dict
     """
     # 保存所有性能数据的字典
     data_dict = {}
     # 如果第1个list的总数大于第2个list，说明有未完成的rd，需要把第1个list最后的结果删除
-    if len(title_list) - len(data_list) == 1:
-        title_list.pop()
-        title_list = title_list
-        data_list = data_list
+    if len(title_lists) - len(data_lists) == 1:
+        title_lists.pop()
+        title_lists = title_lists
+        data_lists = data_lists
     else:
-        title_list = title_list
-        data_list = data_list
+        title_lists = title_lists
+        data_lists = data_lists
 
-    # print(title_list)
-    # print(data_list)
+    # print(title_lists)
+    # print(data_lists)
 
     # 处理title list数据
-    start_time_list = [item[0] for item in title_list]
-    rd_list = [item[1].split('=')[1] for item in title_list]
-    elapsed_list = [int(item[2].split('=')[1]) for item in title_list]
-    warmup_list = [int(item[3].split('=')[1]) for item in title_list]
-    rate_list = [item[4].split('=')[1].replace(".", "") for item in title_list]
-    # 由于RD使用的参数不同，会导致title内容也会有差异
-    rdpct_list = [int(item[5].split('=')[1]) if len(item) == 8 else 'no rdpct' for item in title_list]
-    xfersize_list = [item[6].split('=')[1] if len(item) == 8 else item[5].split('=')[1] for item in title_list]
-    threads_list = [int(item[7].split('=')[1]) if len(item) == 8 else int(item[6].split('=')[1]) for item in
-                    title_list]
+    start_time_list = [item[0] for item in data_lists]  # 为了方便和avg数据对应，这里的开始时间使用data_list时间
+    # 删除每个子列表的第一个时间元素
+    temp_list1 = [sublist[1:] for sublist in title_lists]
+    # 将每个子列表转换为字典
+    title_dict_result = [dict(item.split('=') for item in sublist) for sublist in temp_list1]
 
-    # 处理data list数据
-    iops_list = [float(item[1]) for item in data_list]
-    resp_list = [float(item[2]) for item in data_list]
-    read_pct_list = [float(item[5]) for item in data_list]
-    read_rate_list = [float(item[6]) for item in data_list]
-    read_resp_list = [float(item[7]) for item in data_list]
-    write_rate_list = [float(item[8]) for item in data_list]
-    write_resp_list = [float(item[9]) for item in data_list]
-    read_mbps_list = [float(item[10]) for item in data_list]
-    write_mbps_list = [float(item[11]) for item in data_list]
-    total_mbps_list = [float(item[12]) for item in data_list]
-    xfer_size_list = [float(item[13]) for item in data_list]
+    # 对于某些不是必须的参数，需要判断是否存在
+    rd_list = [item.get('RD') for item in title_dict_result]
+    elapsed_list = [int(item.get('elapsed')) if item.get('elapsed') is not None else None for item in title_dict_result]
+    warmup_list = [int(item.get('warmup')) if item.get('warmup') is not None else None for item in title_dict_result]
+    rate_list = [item.get('fwdrate').replace(".", "") for item in title_dict_result]
+    rdpct_list = [int(item.get('rdpct')) if item.get('rdpct') is not None else None for item in title_dict_result]
+    xfersize_list = [item.get('xfersize') if item.get('xfersize') is not None else None for item in title_dict_result]
+    threads_list = [int(item.get('threads')) if item.get('threads') is not None else None for item in title_dict_result]
 
-    # 更新title字典数据
+    # 把title list数据更新到字典中，以便写入cvs文件
     data_dict.update({'start time': start_time_list})
     data_dict.update({'rd name': rd_list})
     data_dict.update({'elapsed': elapsed_list})
     data_dict.update({'warmup': warmup_list})
     data_dict.update({'rate': rate_list})
-
-    if rdpct_list[0] != 'no rdpct':
-        data_dict.update({'rdpct': rdpct_list})
-
+    data_dict.update({'rdpct': rdpct_list})
     data_dict.update({'xfersize': xfersize_list})
     data_dict.update({'threads': threads_list})
 
-    # 更新data字典数据
-    data_dict.update({'iops': iops_list})
-    data_dict.update({'resp': resp_list})
-    data_dict.update({'read pct': read_pct_list})
-    data_dict.update({'read rate': read_rate_list})
-    data_dict.update({'read resp': read_resp_list})
-    data_dict.update({'write rate': write_rate_list})
-    data_dict.update({'write resp': write_resp_list})
-    data_dict.update({'read mbps': read_mbps_list})
-    data_dict.update({'write mbps': write_mbps_list})
-    data_dict.update({'total mbps': total_mbps_list})
-    data_dict.update({'xfer size': xfer_size_list})
+    # 处理data list数据，把所有数字转换为float，只保留必要的性能数据即可
+    columns_to_convert = [1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+    # 使用列表推导式把所有性能数据转换为float类型
+    converted_data = [[float(item[index]) for item in data_lists] for index in columns_to_convert]
+    # 将性能数据更新到字典中
+    column_names = ['iops', 'resp', 'read pct', 'read rate', 'read resp', 'write rate', 'write resp',
+                    'read mbps', 'write mbps', 'total mbps', 'xfer size']
+    for name, data in zip(column_names, converted_data):
+        data_dict.update({name: data})
 
     # 判断是否打印字典数据
     if is_debug:
@@ -211,20 +199,30 @@ def parse_block_totals(html_path):
                             title_list.remove("For")
                             title_list.remove("loops:")
                             title_list.remove("I/O")
+                            if "None" in title_list:
+                                title_list.remove("None")
                             if "Uncontrolled" in title_list:
                                 title_list.remove("Uncontrolled")
                             if "Controlled" in title_list:
                                 title_list.remove("Controlled")
-                            title_list.remove("rate:")
                             title_lists.append(title_list)
                         else:
                             print("No <b> tag found.")
                     else:
                         print("No <a> tag found.")
-                # 处理性能数据
+                # 处理性能数据。如果这一行的开始的12个字符时间格式的，则说明是性能数据行。
                 if is_time_format(line):
-                    data_list = [item for item in line.split() if "avg" not in item]
+                    # 生成性能数据list
+                    data_list = [item for item in line.split()]
                     data_lists.append(data_list)
+                    """
+                    测试中发现在某些情况下avg性能结果，时间和avg连到一起了（17:08:39.047avg_31-330），需要进行拆分。
+                    """
+                    for item in data_lists:
+                        if "avg" in item[0]:  # 这种情况说明开头是17:08:39.047avg_31-330这种格式的数据，需要把时间和avg分离
+                            item[0] = item[0][:12]
+                        elif "avg" in item[1]:  # 这种情况说明第2列是包含了avg关键字，需要删除第2列
+                            del item[1]
             return title_lists, data_lists
     except SyntaxError:
         print(f"the block file: {html_path} is not html format")
@@ -232,107 +230,100 @@ def parse_block_totals(html_path):
         print(block_e)
 
 
-def block_list_to_dict(title_list, data_list, is_debug):
+def block_list_to_dict(title_lists, data_lists, is_debug):
     """
     把多条list数据提取相同的数据类型分别写入不同的list，并把不同的list写入字典，以便写入excel文件。
     :param is_debug:
-    :param data_list:
-    :param title_list:
+    :param data_lists:
+    :param title_lists:
     :return: perf dict
     """
     # 保存所有性能数据的字典
     data_dict = {}
     # 如果第1个list的总数大于第2个list，说明有未完成的rd，需要把第1个list最后的结果删除
-    if len(title_list) - len(data_list) == 1:
-        title_list.pop()
-        title_list = title_list
-        data_list = data_list
+    if len(title_lists) - len(data_lists) == 1:
+        title_lists.pop()
+        title_list = title_lists
+        data_lists = data_lists
     else:
-        title_list = title_list
-        data_list = data_list
+        title_list = title_lists
+        data_lists = data_lists
 
     # print(title_list)
     # print(data_list)
 
     # 处理title list数据
-    start_time_list = [item[0] for item in title_list]
-    rd_list = [item[1].split('=')[1] for item in title_list]
-    rate_list = [item[2] for item in title_list]
-    elapsed_list = [int(item[3].split('=')[1]) for item in title_list]
-    warmup_list = [int(item[4].split('=')[1]) for item in title_list]
-    # 由于RD使用的参数不同，会导致title内容也会有差异
-    rdpct_list = [int(item[5].split('=')[1]) if len(item) == 8 else 'no rdpct' for item in title_list]
-    xfersize_list = [item[6].split('=')[1] if len(item) == 8 else 'no xfersize' for item in title_list]
-    threads_list = [int(item[7].split('=')[1]) if len(item) == 8 else int(item[5].split('=')[1]) for item in
-                    title_list]
 
-    # 更新title字典数据
+    start_time_list = [item[0] for item in data_lists]  # 为了方便和avg数据对应，这里的开始时间使用data_list时间
+    # 第4个元素固定为rate
+    rate_list = [int(item[3]) if isinstance(item[3], int) else item[3] for item in title_lists]
+    # 删除第1个元素的列表
+    temp_list1 = [sublist[1:] for sublist in title_lists]
+    # 删除第2个（rate)和第3个（rate的值）元素后的列表
+    temp_list2 = [item[:1] + item[3:] for item in temp_list1]
+
+    # 将剩下的list转换为字典
+    title_dict_result = [dict(item.split('=') for item in sublist) for sublist in temp_list2]
+
+    # 由于RD使用的参数不同，会导致title内容也会有差异，以下参数不是rd必须的，所以需要判断是否存在
+    rd_list = [item.get('RD') for item in title_dict_result]
+    elapsed_list = [int(item.get('elapsed')) if item.get('elapsed') is not None else None for item in title_dict_result]
+    warmup_list = [int(item.get('warmup')) if item.get('warmup') is not None else None for item in title_dict_result]
+    rdpct_list = [int(item.get('rdpct')) if item.get('rdpct') is not None else None for item in title_dict_result]
+    xfersize_list = [item.get('xfersize', None) for item in title_dict_result]
+    threads_list = [int(item.get('threads')) if item.get('threads') is not None else None for item in title_dict_result]
+
+    # 把title list数据更新到字典中，以便写入cvs文件
     data_dict.update({'start time': start_time_list})
     data_dict.update({'rd name': rd_list})
     data_dict.update({'rate': rate_list})
     data_dict.update({'elapsed': elapsed_list})
     data_dict.update({'warmup': warmup_list})
-    if rdpct_list[0] != 'no rdpct':
-        data_dict.update({'rdpct': rdpct_list})
-    if xfersize_list[0] != 'no xfersize':
-        data_dict.update({'xfersize': xfersize_list})
+    data_dict.update({'rdpct': rdpct_list})
+    data_dict.update({'xfersize': xfersize_list})
     data_dict.update({'threads': threads_list})
 
-    if is_time_format(data_list[0][0]):
-        # 如果第1个元素是时间格式，那么iops应该从list[1]开始
-        iops_list = [float(item[1]) for item in data_list]
-        mbps_list = [float(item[2]) for item in data_list]
-        block_size_list = [float(item[3]) for item in data_list]
-        read_pct_list = [float(item[4]) for item in data_list]
-        resp_time_list = [float(item[5]) for item in data_list]
-        read_resp_time_list = [float(item[6]) for item in data_list]
-        write_resp_time_list = [float(item[7]) for item in data_list]
-        resp_max_list = [float(item[8]) for item in data_list]
-        resp_stddev_list = [float(item[9]) for item in data_list]
-        queue_depth_list = [float(item[10]) for item in data_list]
-        cpu1_list = [float(item[11]) for item in data_list]
-        cpu2_list = [float(item[12]) for item in data_list]
+    # 处理性能数据
 
-        # 更新data字典数据
-        data_dict.update({'iops': iops_list})
-        data_dict.update({'mbps': mbps_list})
-        data_dict.update({'block size': block_size_list})
-        data_dict.update({'read pct': read_pct_list})
-        data_dict.update({'resp time': resp_time_list})
-        data_dict.update({'read resp time': read_resp_time_list})
-        data_dict.update({'write rate time': write_resp_time_list})
-        data_dict.update({'resp max': resp_max_list})
-        data_dict.update({'resp stddev': resp_stddev_list})
-        data_dict.update({'queue depth': queue_depth_list})
-        data_dict.update({'cpu% sys+u': cpu1_list})
-        data_dict.update({'cpu% sys': cpu2_list})
-    else:
-        iops_list = [float(item[0]) for item in data_list]
-        mbps_list = [float(item[1]) for item in data_list]
-        block_size_list = [float(item[2]) for item in data_list]
-        read_pct_list = [float(item[3]) for item in data_list]
-        resp_time_list = [float(item[4]) for item in data_list]
-        read_resp_time_list = [float(item[5]) for item in data_list]
-        write_resp_time_list = [float(item[6]) for item in data_list]
-        resp_max_list = [float(item[7]) for item in data_list]
-        resp_stddev_list = [float(item[8]) for item in data_list]
-        queue_depth_list = [float(item[9]) for item in data_list]
-        cpu1_list = [float(item[10]) for item in data_list]
-        cpu2_list = [float(item[11]) for item in data_list]
+    # 删除每个子列表的第一个时间元素，时间使用title_list数据
+    no_time_lists = [sublist[1:] for sublist in data_lists]
+    # 定一个12个元素
+    column_names = ['iops', 'mbps', 'bytes', 'read pct', 'resp time', 'read resp', 'write rate',
+                    'resp max', 'resp stddev', 'queue depth', 'cpu% sys+u', 'cpu% sys']
+    # 性能数据每一列都是固定的数值，所以可以根据顺序对每一列进行赋值操作
+    for idx, column_name in enumerate(column_names):
+        column_values = [float(item[idx]) for item in no_time_lists]
+        data_dict.update({column_name: column_values})
 
-        # 更新data字典数据
-        data_dict.update({'iops': iops_list})
-        data_dict.update({'mbps': mbps_list})
-        data_dict.update({'block size': block_size_list})
-        data_dict.update({'read pct': read_pct_list})
-        data_dict.update({'resp time': resp_time_list})
-        data_dict.update({'read resp time': read_resp_time_list})
-        data_dict.update({'write rate time': write_resp_time_list})
-        data_dict.update({'resp max': resp_max_list})
-        data_dict.update({'resp stddev': resp_stddev_list})
-        data_dict.update({'queue depth': queue_depth_list})
-        data_dict.update({'cpu% sys+u': cpu1_list})
-        data_dict.update({'cpu% sys': cpu2_list})
+    # 上面的代码是优化的下面复杂的代码，暂时保留注释，以防后面TroubltShooting使用，下个版本删除。
+    # if is_time_format(data_list[0][0]):
+    #     # 如果第1个元素是时间格式，那么iops应该从list[1]开始
+    #     iops_list = [float(item[1]) for item in data_list]
+    #     mbps_list = [float(item[2]) for item in data_list]
+    #     block_size_list = [float(item[3]) for item in data_list]
+    #     read_pct_list = [float(item[4]) for item in data_list]
+    #     resp_time_list = [float(item[5]) for item in data_list]
+    #     read_resp_time_list = [float(item[6]) for item in data_list]
+    #     write_resp_time_list = [float(item[7]) for item in data_list]
+    #     resp_max_list = [float(item[8]) for item in data_list]
+    #     resp_stddev_list = [float(item[9]) for item in data_list]
+    #     queue_depth_list = [float(item[10]) for item in data_list]
+    #     cpu1_list = [float(item[11]) for item in data_list]
+    #     cpu2_list = [float(item[12]) for item in data_list]
+    #
+    #     # 把data list数据更新到字典中，以便写入cvs文件
+    #     data_dict.update({'iops': iops_list})
+    #     data_dict.update({'mbps': mbps_list})
+    #     data_dict.update({'block size': block_size_list})
+    #     data_dict.update({'read pct': read_pct_list})
+    #     data_dict.update({'resp time': resp_time_list})
+    #     data_dict.update({'read resp time': read_resp_time_list})
+    #     data_dict.update({'write rate time': write_resp_time_list})
+    #     data_dict.update({'resp max': resp_max_list})
+    #     data_dict.update({'resp stddev': resp_stddev_list})
+    #     data_dict.update({'queue depth': queue_depth_list})
+    #     data_dict.update({'cpu% sys+u': cpu1_list})
+    #     data_dict.update({'cpu% sys': cpu2_list})
 
     # 判断是否打印字典数据
     if is_debug:
