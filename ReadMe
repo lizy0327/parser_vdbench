@@ -13,7 +13,6 @@ pip3 install openpyxl
 ###### 待办事项
 1.check_license.py程序还有待完善
 2.输出路径可以支持文件名
-3.优化重复代码，尤其是data_dict的代码
 
 
 ###### Change log
