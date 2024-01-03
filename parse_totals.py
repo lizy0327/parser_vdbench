@@ -396,6 +396,7 @@ def license_check():
         # Current time must be before effective date.
         if sign_list[1] < current_date:
             print('*Error*: License is expired!')
+            print('Please check your license in /opt/parse_totals/License.dat')
             sys.exit(1)
     else:
         print('*Error*: Wrong Sign setting on license file.')

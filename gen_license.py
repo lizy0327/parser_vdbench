@@ -24,10 +24,10 @@ def my_help():
     print(
         "-h --help    Show this help \n"
         "-v --version Show version \n"
-        "EXAMPLES: \n"
-        "gen_license -u --uuid    get os uuid\n"
-        "gen_license <uuid> <date:20220101>    create license file\n"
-        "\nyou can use 'dmidecode -s system-uuid' get linux uuid"
+        "\nEXAMPLES: \n"
+        "gen_license [-u|--uuid]    get os uuid\n"
+        "gen_license <uuid> <date>    create license file.data:20241231\n"
+        "\nyou can use 'dmidecode -s system-uuid' get linux uuid\n"
     )
 
 
@@ -53,7 +53,7 @@ def encrypt(content):
 
 
 def gen_license_file(uuid, date):
-    license_file = 'opt/parse_totals/License.dat'
+    license_file = '/opt/parse_totals/License.dat'
     with open(license_file, 'w') as LF:
         LF.write(f'UUID : {uuid}\n')
         LF.write(f'Date : {date}\n')
