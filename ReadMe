@@ -70,3 +70,6 @@ open license check
 
 4.2 2024/01/03
 优化license检测和提示
+
+4.2 2024/03/26
+把threads数量类型由int变为string，因为1024线程在vdbench里会被识别为1k.
