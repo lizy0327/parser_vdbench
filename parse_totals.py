@@ -507,7 +507,7 @@ if __name__ == '__main__':
     # 获取OS UUID
     get_sys_uuid()
     # 检查license授权
-    # license_check()
+    license_check()
 
     # 获取所有参数
     known_args = intput_args()[0]
