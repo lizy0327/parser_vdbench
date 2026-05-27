@@ -34,14 +34,26 @@ VDBench 性能分析工具，用于解析 VDBench 性能测试结果（totals.ht
 
 ## 文件说明
 
+### 核心文件
+
+| 文件 | 说明 | 行数 |
+|------|------|------|
+| `parse_totals.py` | 主程序，解析 totals.html 并导出 Excel | ~520 行 |
+| `check_license.py` | License 验证模块（MAC/UUID + 日期校验） | ~90 行 |
+| `gen_license.py` | License 生成工具（AES 加密） | ~80 行 |
+| `parse_totals.spec` | PyInstaller 打包配置文件 | ~40 行 |
+
+### 配置文件
+
 | 文件 | 说明 |
 |------|------|
-| `parse_totals.py` | 主程序，解析 totals.html 并导出 Excel |
-| `check_license.py` | License 验证模块 |
-| `gen_license.py` | License 生成工具 |
-| `parse_totals.spec` | PyInstaller 打包配置文件 |
 | `requirements.txt` | Python 依赖列表 |
 | `.gitignore` | Git 忽略文件 |
+
+### 文档文件
+
+| 文件 | 说明 |
+|------|------|
 | `README.md` | 用户使用文档 |
 | `PROJECT.md` | 项目元数据文档 |
 
@@ -81,6 +93,31 @@ pip install -r requirements.txt
 ### 打包可执行文件
 ```bash
 pyinstaller --onefile parse_totals.py
+# 输出在 dist/parse_totals
+# 文件大小约 40MB
+```
+
+### 二进制文件信息
+
+| 属性 | 值 |
+|------|-----|
+| 打包工具 | PyInstaller 4.10 |
+| 输出位置 | `dist/parse_totals` |
+| 文件大小 | ~40MB |
+| 目标平台 | Linux x86_64 |
+| Python 版本 | 3.6+ |
+
+### 远程服务器编译环境
+
+```bash
+# 服务器：c8-vsan (10.128.58.119)
+# 目录：/home/parse_vdbench/
+
+# 已编译二进制位置
+/home/parse_vdbench/dist/parse_totals
+
+# 构建目录
+/home/parse_vdbench/build/parse_totals/
 ```
 
 ### 系统要求
@@ -93,6 +130,56 @@ pyinstaller --onefile parse_totals.py
 - [ ] 完善 `check_license.py` 程序
 - [ ] 输出路径支持文件名
 - [ ] 自定义过滤 title 和 data 关键字
+
+## 使用情况
+
+### 典型使用场景
+
+1. **存储性能测试分析**
+   - 解析 VDBench 生成的 file/block 性能测试结果
+   - 自动提取 IOPS、延迟、吞吐量等关键指标
+   - 导出 Excel 用于报告和对比分析
+
+2. **批量数据处理**
+   - 支持多次运行的结果对比
+   - 自动识别不同的 RD（Run Definition）配置
+   - 支持 warmup/elapsed 时间分析
+
+### 输出数据格式
+
+**File 类型测试输出：**
+| 字段 | 说明 |
+|------|------|
+| start time | 开始时间 |
+| rd name | RD 名称 |
+| elapsed | 运行时长 |
+| warmup | Warmup 时长 |
+| rate | 速率 |
+| rdpct | 读百分比 |
+| xfersize | 传输大小 |
+| threads | 线程数 |
+| iops | IOPS |
+| resp | 响应时间 |
+| read mbps | 读吞吐量 |
+| write mbps | 写吞吐量 |
+| total mbps | 总吞吐量 |
+
+**Block 类型测试输出：**
+| 字段 | 说明 |
+|------|------|
+| iops | IOPS |
+| mbps | 吞吐量 |
+| read pct | 读百分比 |
+| resp time | 响应时间 |
+| read resp | 读响应 |
+| resp max | 最大响应 |
+| cpu% sys+u | CPU 使用率 |
+
+### 已知部署位置
+
+| 服务器 | IP | 路径 | 用途 |
+|--------|-----|------|------|
+| c8-vsan | 10.128.58.119 | /home/parse_vdbench/ | 主部署环境 |
 
 ## 相关资源
 
