@@ -231,8 +231,9 @@ def block_list_to_dict(title_lists: List[List[str]], data_lists: List[List[str]]
     })
 
     # 处理性能数据 - 删除每个子列表的第一个时间元素
+    # resp time 放在 mbps 后面
     no_time_lists = [sublist[1:] for sublist in data_lists]
-    column_names = ['iops', 'mbps', 'bytes', 'read pct', 'resp time', 'read resp', 'write rate',
+    column_names = ['iops', 'mbps', 'resp time', 'bytes', 'read pct', 'read resp', 'write rate',
                     'resp max', 'resp stddev', 'queue depth', 'cpu% sys+u', 'cpu% sys']
 
     for idx, column_name in enumerate(column_names):
@@ -456,10 +457,12 @@ def main() -> None:
 
         input_file = os.path.abspath(known_args.totals_file).replace("\\", "/")
 
-        # 确定输出路径
+        # 确定输出路径 - 默认放在 totals.html 同一目录下
         if known_args.output_path is None:
-            file_name = input_file.split('/')[-2]
-            output_path = os.path.abspath(os.getcwd() + "/" + f"{file_name}.xlsx").replace("\\", "/")
+            # 获取输入文件所在目录
+            input_dir = os.path.dirname(input_file)
+            file_name = input_file.split('/')[-2]  # totals.html 所在目录名
+            output_path = os.path.join(input_dir, f"{file_name}.xlsx").replace("\\", "/")
         else:
             file_name = input_file.split('/')[-2]
             output_path = return_filepath(known_args.output_path, file_name)
