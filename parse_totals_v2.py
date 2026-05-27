@@ -231,12 +231,28 @@ def block_list_to_dict(title_lists: List[List[str]], data_lists: List[List[str]]
     })
 
     # 处理性能数据 - 删除每个子列表的第一个时间元素
-    # resp time 放在 mbps 后面
+    # 原始数据列顺序：['iops', 'mbps', 'bytes', 'read pct', 'resp time', 'read resp', 'write rate',
+    #                 'resp max', 'resp stddev', 'queue depth', 'cpu% sys+u', 'cpu% sys']
+    # resp time 放在 mbps 后面（索引 4 的数据移到输出列的第 3 位）
     no_time_lists = [sublist[1:] for sublist in data_lists]
-    column_names = ['iops', 'mbps', 'resp time', 'bytes', 'read pct', 'read resp', 'write rate',
-                    'resp max', 'resp stddev', 'queue depth', 'cpu% sys+u', 'cpu% sys']
 
-    for idx, column_name in enumerate(column_names):
+    # 原始索引映射：列名 -> 原始数据索引
+    column_index_map = {
+        'iops': 0,
+        'mbps': 1,
+        'resp time': 4,  # resp time 原始在索引 4
+        'bytes': 2,
+        'read pct': 3,
+        'read resp': 5,
+        'write rate': 6,
+        'resp max': 7,
+        'resp stddev': 8,
+        'queue depth': 9,
+        'cpu% sys+u': 10,
+        'cpu% sys': 11,
+    }
+
+    for column_name, idx in column_index_map.items():
         data_dict[column_name] = [float(item[idx]) for item in no_time_lists]
 
     if is_debug:
