@@ -81,6 +81,23 @@ python gen_license.py <uuid> <日期>
 ```bash
 pyinstaller --onefile parse_totals.py
 # 输出在 dist/ 目录
+# 文件大小约 40MB
+```
+
+## 二进制编译
+
+| 属性 | 值 |
+|------|-----|
+| 打包工具 | PyInstaller 4.10 |
+| 输出位置 | `dist/parse_totals` |
+| 文件大小 | ~40MB |
+| 目标平台 | Linux x86_64 |
+
+### 编译环境
+```bash
+# 服务器：c8-vsan (10.128.58.119)
+# 工作目录：/home/parse_vdbench/
+# 二进制位置：/home/parse_vdbench/dist/parse_totals
 ```
 
 ## 参数说明
@@ -100,12 +117,44 @@ pyinstaller --onefile parse_totals.py
 
 输出为 `.xlsx` 文件，可直接用 Excel 打开分析。
 
+### 输出字段说明
+
+**File 类型输出字段：**
+| 字段 | 说明 | 字段 | 说明 |
+|------|------|------|------|
+| start time | 开始时间 | rd name | RD 名称 |
+| elapsed | 运行时长 | warmup | Warmup 时长 |
+| rate | 速率 | rdpct | 读百分比 |
+| xfersize | 传输大小 | threads | 线程数 |
+| iops | IOPS | resp | 响应时间 |
+| read mbps | 读吞吐量 | write mbps | 写吞吐量 |
+| total mbps | 总吞吐量 | | |
+
+**Block 类型输出字段：**
+| 字段 | 说明 | 字段 | 说明 |
+|------|------|------|------|
+| iops | IOPS | mbps | 吞吐量 |
+| read pct | 读百分比 | resp time | 响应时间 |
+| read resp | 读响应 | resp max | 最大响应 |
+| cpu% sys+u | CPU 使用率 | | |
+
 ## License 使用说明
 
 1. 使用 `gen_license.py` 生成 `License.dat` 文件
 2. 生成的 `License.dat` 虽然是明文的，但经过加密处理，如果被编辑过，文件的指纹会变化
 3. 主程序在运行时会获取系统的 uuid 和时间信息，和 `License.dat` 内容做对比，如果有任何一项不符合要求，会自动退出程序
 4. 为了简化使用成本，检查 uuid 的方法默认设置为 pass，即不检查 uuid
+
+## 部署信息
+
+| 服务器 | IP | 路径 | 用途 |
+|--------|-----|------|------|
+| c8-vsan | 10.128.58.119 | /home/parse_vdbench/ | 主部署环境 |
+
+## 使用场景
+
+1. **存储性能测试分析** - 解析 VDBench 性能测试结果，导出 Excel 用于报告
+2. **批量数据处理** - 支持多次运行结果对比，自动识别不同 RD 配置
 
 ## 待办事项
 
