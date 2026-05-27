@@ -13,7 +13,7 @@
 - **GitHub**: https://github.com/lizy0327/parser_vdbench
 - **分支**: `v2-refactor`
 - **作者**: lizy0327 (lizy0327@gmail.com)
-- **当前版本**: 2.0.0 (v2 重构版)
+- **当前版本**: 2.0.1 (v2 重构版)
 - **Python 版本**: 3.8+
 
 ## v2 主要改进
@@ -158,6 +158,13 @@ python3 gen_license.py <uuid> <日期>
 - [ ] 支持自定义字段过滤
 
 ## Change Log
+
+### 2.0.1 (输出路径优化)
+
+**优化改进:**
+- ✅ 输出文件默认放在 totals.html 同一目录下（无需额外指定 `-C` 参数）
+- ✅ Block 类型输出：`resp time` 列移至 `mbps` 列之后，更符合阅读习惯
+- ✅ Python 3.6 兼容：`get_sys_uuid()` 使用 `Popen` 替代 `run`
 
 ### 2.0.0 (v2 重构版)
 
