@@ -351,9 +351,13 @@ def decrypt(content: str) -> str:
 
 def get_sys_uuid() -> str:
     """获取系统 UUID"""
-    result = subprocess.run(['/sbin/dmidecode', '-s', 'system-uuid'],
-                           capture_output=True, text=True)
-    return result.stdout.strip().split('\n')[0] if result.stdout else ''
+    # Python 3.6 兼容：使用 Popen 替代 subprocess.run
+    sp = subprocess.Popen('/sbin/dmidecode -s system-uuid', shell=True,
+                         stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+    (stdout, stderr) = sp.communicate()
+    stdout_list = str(stdout, 'utf-8').split('\n')
+    return stdout_list[0] if stdout_list else ''
 
 
 # ==================== 路径处理函数 ====================
