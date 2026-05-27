@@ -1,12 +1,36 @@
 # VDBench 性能分析工具
 
+[![GitHub](https://img.shields.io/github/v/tag/lizy0327/parser_vdbench?label=version)](https://github.com/lizy0327/parser_vdbench)
+[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 解析 VDBench 性能测试结果（totals.html）并导出为 Excel 文件。
+
+## 项目信息
+
+- **GitHub**: https://github.com/lizy0327/parser_vdbench
+- **作者**: lizy0327 (lizy0327@gmail.com)
+- **当前版本**: 4.3.0
+- **Python 版本**: 3.8+
 
 ## 功能
 
 - 解析 VDBench file 类型和 block 类型的 totals.html 文件
 - 自动提取性能数据（IOPS、延迟、吞吐量等）
 - 导出为 Excel 格式，便于后续分析
+
+## 项目结构
+
+```
+vdbench-parser/
+├── parse_totals.py      # 主程序 - 解析 totals.html 导出 Excel
+├── check_license.py     # License 验证模块
+├── gen_license.py       # License 生成工具
+├── parse_totals.spec    # PyInstaller 打包配置
+├── requirements.txt     # Python 依赖
+├── .gitignore          # Git 忽略文件
+└── README.md           # 项目文档
+```
 
 ## 环境配置
 
