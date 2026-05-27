@@ -159,6 +159,11 @@ python3 gen_license.py <uuid> <日期>
 
 ## Change Log
 
+### 2.0.2 (Bug 修复)
+
+**Bug 修复:**
+- 🔴 修复 resp time 列数据错位问题（使用 column_index_map 明确指定每列的原始索引）
+
 ### 2.0.1 (输出路径优化)
 
 **优化改进:**
