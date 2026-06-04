@@ -27,7 +27,7 @@ from Crypto.Cipher import AES
 
 # ==================== 常量配置 ====================
 
-VERSION = "2.0.5"
+VERSION = "2.0.6"
 LICENSE_DIR = "/opt/parse_totals/"
 LICENSE_FILE = os.path.join(LICENSE_DIR, "License.dat")
 AES_KEY = b"0CoJUm3Qyw3W3jud"
