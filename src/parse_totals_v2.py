@@ -660,9 +660,15 @@ def collect_totals_files(input_patterns: List[str], batch_mode: bool) -> List[st
         elif os.path.isdir(pattern):
             files = find_totals_in_dir(pattern)
             totals_files.extend(files)
-        # 文件模式
+        # 文件模式 - 确保是 totals.html 文件
         elif os.path.isfile(pattern):
-            totals_files.append(os.path.abspath(pattern))
+            if os.path.basename(pattern) == "totals.html":
+                totals_files.append(os.path.abspath(pattern))
+            else:
+                logger.warning(f"Skipping non-totals.html file: {pattern}")
+        else:
+            # 路径不存在，记录警告
+            logger.warning(f"Path does not exist: {pattern}")
 
     return sorted(set(totals_files))
 
