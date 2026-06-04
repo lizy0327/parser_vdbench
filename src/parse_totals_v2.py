@@ -635,15 +635,16 @@ def input_args() -> Tuple[argparse.Namespace, List[str]]:
     return args, un_args
 
 
-def collect_totals_files(input_patterns: List[str], batch_mode: bool) -> List[str]:
+def collect_totals_files(input_patterns: List[str], batch_mode: bool) -> Tuple[List[str], List[str]]:
     """
     收集所有需要处理的 totals.html 文件
 
     :param input_patterns: 输入模式列表
     :param batch_mode: 是否批量模式
-    :return: 文件路径列表
+    :return: (文件路径列表，跳过的路径列表)
     """
     totals_files = []
+    skipped = []
 
     for pattern in input_patterns:
         pattern = pattern.replace("\\\\", "/")
@@ -665,12 +666,12 @@ def collect_totals_files(input_patterns: List[str], batch_mode: bool) -> List[st
             if os.path.basename(pattern) == "totals.html":
                 totals_files.append(os.path.abspath(pattern))
             else:
-                logger.warning(f"Skipping non-totals.html file: {pattern}")
+                skipped.append(pattern)
         else:
-            # 路径不存在，记录警告
-            logger.warning(f"Path does not exist: {pattern}")
+            # 路径不存在
+            skipped.append(pattern)
 
-    return sorted(set(totals_files))
+    return sorted(set(totals_files)), skipped
 
 
 def main() -> None:
@@ -691,7 +692,13 @@ def main() -> None:
 
         # 收集所有文件
         input_patterns = known_args.totals_file.split()
-        totals_files = collect_totals_files(input_patterns, known_args.batch)
+        totals_files, skipped = collect_totals_files(input_patterns, known_args.batch)
+
+        # 显示跳过的路径
+        if skipped:
+            logger.info(f"Skipped {len(skipped)} invalid path(s):")
+            for s in skipped:
+                logger.info(f"  - {s}")
 
         if not totals_files:
             if len(input_patterns) == 1:
