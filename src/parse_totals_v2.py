@@ -200,6 +200,9 @@ def file_list_to_dict(
     # 添加性能数据列
     for col_name, col_idx in FILE_PERF_COLUMNS.items():
         data_dict[col_name] = [_safe_float(item[col_idx]) for item in data_lists]
+        # 在 iops 列后添加 mbps 列 (与 total mbps 一致)
+        if col_name == "iops":
+            data_dict["mbps"] = [_safe_float(item[FILE_PERF_COLUMNS["total mbps"]]) for item in data_lists]
 
     if is_debug:
         logger.debug(f"File data dict: {data_dict}")
