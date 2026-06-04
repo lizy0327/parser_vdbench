@@ -57,7 +57,7 @@ FILE_PERF_COLUMNS = {
 BLOCK_PERF_COLUMNS = {
     "iops": 0,
     "mbps": 1,
-    "resp time": 4,
+    "resp": 4,
     "bytes": 2,
     "read pct": 3,
     "read resp": 5,
